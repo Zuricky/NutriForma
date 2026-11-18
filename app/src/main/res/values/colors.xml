@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- NutriForma Mediterranean palette (mirrors ui/theme/Color.kt) -->
+    <color name="herb_green">#FF2E7D32</color>
+    <color name="tomato_red">#FFD84315</color>
+    <color name="eggplant_purple">#FF6A1B9A</color>
+    <color name="warm_cream">#FFFAF7F2</color>
+    <color name="soft_beige">#FFF2ECE1</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

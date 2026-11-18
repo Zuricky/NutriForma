@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Foglia grande (verde chiaro) -->
+    <path
+        android:fillColor="#A5D6A7"
+        android:pathData="M44,52C36,42 38,32 48,27C56,32 58,44 44,52Z" />
+    <!-- Foglia crema -->
+    <path
+        android:fillColor="#FAF7F2"
+        android:pathData="M54,50C52,40 58,31 68,30C70,40 64,48 54,50Z" />
+    <!-- Nervatura -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#2E7D32"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M44,50C44,43 46,35 48,31" />
+    <!-- Pomodoro -->
+    <path
+        android:fillColor="#D84315"
+        android:pathData="M69,46m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+    <path
+        android:fillColor="#A5D6A7"
+        android:pathData="M69,40l-3,-2l3,0.6l3,-0.6z" />
+    <!-- Ciotola -->
+    <path
+        android:fillColor="#FAF7F2"
+        android:pathData="M30,52L78,52C78,66 68,76 54,76C40,76 30,66 30,52Z" />
+    <path
+        android:fillColor="#F2ECE1"
+        android:pathData="M30,52L78,52L77.6,55L30.4,55Z" />
+</vector>
