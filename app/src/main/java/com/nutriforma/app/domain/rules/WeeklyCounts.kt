@@ -24,7 +24,32 @@ data class WeeklyCounts(
     val tonno: Int = 0,
     val affettato: Int = 0,
     val patate: Int = 0,
+    /** Giorni in cui il burro di arachidi compare più di una volta (limite: 1 al giorno). */
+    val giorniBurroArachidiOltreLimite: Int = 0,
+    /** Giorni in cui la spremuta d'arancia compare più di una volta (limite: 1 al giorno). */
+    val giorniSpremutaOltreLimite: Int = 0,
 )
+
+/** Limiti giornalieri per singolo alimento (colazione + spuntini). */
+object DailyFoodCaps {
+    const val BURRO_ARACHIDI = "burro_arachidi"
+    const val SPREMUTA_ARANCIA = "spremuta_arancia"
+
+    /** `foodId` → massimo di volte al giorno. */
+    val maxPerDay: Map<String, Int> = mapOf(BURRO_ARACHIDI to 1, SPREMUTA_ARANCIA to 1)
+
+    /** Quante volte [foodId] compare nei pasti del giorno [dayIndex]. */
+    fun countOnDay(meals: List<PlannedMeal>, dayIndex: Int, foodId: String): Int =
+        meals.filter { it.dayIndex == dayIndex }.sumOf { m -> m.components.count { it.foodId == foodId } }
+
+    /** Numero di giorni della settimana in cui [foodId] supera il limite giornaliero. */
+    fun daysOverCap(meals: List<PlannedMeal>, foodId: String): Int {
+        val max = maxPerDay[foodId] ?: return 0
+        return meals.groupBy { it.dayIndex }.count { (_, dayMeals) ->
+            dayMeals.sumOf { m -> m.components.count { it.foodId == foodId } } > max
+        }
+    }
+}
 
 object WeeklyCounter {
 
@@ -42,7 +67,8 @@ object WeeklyCounter {
                 MealType.COLAZIONE_DOLCE -> dolci++
                 MealType.PRANZO_LIBERO -> liberi++
                 MealType.CENA_PRIMO_VERDURE -> verdure++
-                MealType.CENA_PRIMO_PROTEICO -> proteico++
+                // Pasta con proteine o carne: sia il primo con condimento proteico sia i piatti completi (pasticcio, carbonara...).
+                MealType.CENA_PRIMO_PROTEICO, MealType.CENA_PIATTO_UNICO -> proteico++
                 MealType.CENA_SECONDO -> secondo++
                 MealType.CENA_MINESTRONE -> minestrone++
                 else -> Unit
@@ -73,6 +99,8 @@ object WeeklyCounter {
             carne = carne, carneBianca = bianca, carneRossa = rossa, pesce = pesce,
             uovaOccasioni = uovaOcc, uovaTotale = Math.round(uovaTot).toInt(),
             tonno = tonno, affettato = affettato, patate = patate,
+            giorniBurroArachidiOltreLimite = DailyFoodCaps.daysOverCap(meals, DailyFoodCaps.BURRO_ARACHIDI),
+            giorniSpremutaOltreLimite = DailyFoodCaps.daysOverCap(meals, DailyFoodCaps.SPREMUTA_ARANCIA),
         )
     }
 }

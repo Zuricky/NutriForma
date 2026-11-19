@@ -1,5 +1,5 @@
 {
-  "seedVersion": 1,
+  "seedVersion": 2,
   "foods": [
     {
       "id": "prosciutto_crudo",
@@ -996,8 +996,7 @@
       "nameIt": "Petto di pollo",
       "category": "CARNE_BIANCA",
       "roles": [
-        "PRANZO_SECONDO",
-        "CENA_SECONDO"
+        "PRANZO_SECONDO"
       ],
       "gramsPerUnit": null,
       "kcal": 100.0,
@@ -1014,8 +1013,7 @@
       "nameIt": "Petto di tacchino",
       "category": "CARNE_BIANCA",
       "roles": [
-        "PRANZO_SECONDO",
-        "CENA_SECONDO"
+        "PRANZO_SECONDO"
       ],
       "gramsPerUnit": null,
       "kcal": 107.0,
@@ -1032,8 +1030,7 @@
       "nameIt": "Coniglio",
       "category": "CARNE_BIANCA",
       "roles": [
-        "PRANZO_SECONDO",
-        "CENA_SECONDO"
+        "PRANZO_SECONDO"
       ],
       "gramsPerUnit": null,
       "kcal": 118.0,
@@ -1050,8 +1047,7 @@
       "nameIt": "Manzo magro",
       "category": "CARNE_ROSSA",
       "roles": [
-        "PRANZO_SECONDO",
-        "CENA_SECONDO"
+        "PRANZO_SECONDO"
       ],
       "gramsPerUnit": null,
       "kcal": 131.0,
@@ -1068,8 +1064,7 @@
       "nameIt": "Vitello magro",
       "category": "CARNE_ROSSA",
       "roles": [
-        "PRANZO_SECONDO",
-        "CENA_SECONDO"
+        "PRANZO_SECONDO"
       ],
       "gramsPerUnit": null,
       "kcal": 92.0,
@@ -1086,8 +1081,7 @@
       "nameIt": "Lonza di maiale",
       "category": "CARNE_ROSSA",
       "roles": [
-        "PRANZO_SECONDO",
-        "CENA_SECONDO"
+        "PRANZO_SECONDO"
       ],
       "gramsPerUnit": null,
       "kcal": 146.0,
@@ -1532,6 +1526,148 @@
       "supermarket": null,
       "preferred": false,
       "excludable": false
+    },
+    {
+      "id": "biscotti",
+      "nameIt": "Biscotti",
+      "category": "DOLCE_COLAZIONE",
+      "roles": [
+        "COLAZIONE_DOLCE"
+      ],
+      "gramsPerUnit": 13.0,
+      "kcal": 430.0,
+      "protein": 7.0,
+      "carbs": 76.0,
+      "fat": 11.0,
+      "fiber": 2.5,
+      "supermarket": "PANE_FORNO",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "burro_arachidi",
+      "nameIt": "Burro di arachidi",
+      "category": "FRUTTA_SECCA",
+      "roles": [
+        "COLAZIONE_DOLCE",
+        "SPUNTINO_SECCA",
+        "SPUNTINO_ABBINAMENTO"
+      ],
+      "gramsPerUnit": null,
+      "kcal": 600.0,
+      "protein": 25.0,
+      "carbs": 12.0,
+      "fat": 50.0,
+      "fiber": 6.0,
+      "supermarket": "FRUTTA_SECCA_SNACK",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "spremuta_arancia",
+      "nameIt": "Spremuta d'arancia",
+      "category": "BEVANDA",
+      "roles": [
+        "COLAZIONE_BEVANDA",
+        "COLAZIONE_DOLCE_BEVANDA",
+        "SPUNTINO_FRUTTA"
+      ],
+      "gramsPerUnit": 1.0,
+      "kcal": 45.0,
+      "protein": 0.7,
+      "carbs": 10.0,
+      "fat": 0.2,
+      "fiber": 0.2,
+      "supermarket": "BEVANDE",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "polpo",
+      "nameIt": "Polpo",
+      "category": "PESCE",
+      "roles": [
+        "PRANZO_SECONDO",
+        "CENA_SECONDO",
+        "CENA_PRIMO_CONDIMENTO_PROTEICO"
+      ],
+      "gramsPerUnit": null,
+      "kcal": 57.0,
+      "protein": 10.6,
+      "carbs": 0.4,
+      "fat": 1.0,
+      "fiber": 0.0,
+      "supermarket": "PESCE",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "pasticcio",
+      "nameIt": "Pasticcio",
+      "category": "PIATTO_UNICO",
+      "roles": [
+        "CENA_PIATTO_UNICO"
+      ],
+      "gramsPerUnit": null,
+      "kcal": 160.0,
+      "protein": 8.0,
+      "carbs": 15.0,
+      "fat": 7.5,
+      "fiber": 1.0,
+      "supermarket": "GASTRONOMIA",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "carbonara",
+      "nameIt": "Carbonara",
+      "category": "PIATTO_UNICO",
+      "roles": [
+        "CENA_PIATTO_UNICO"
+      ],
+      "gramsPerUnit": null,
+      "kcal": 195.0,
+      "protein": 8.5,
+      "carbs": 23.0,
+      "fat": 7.5,
+      "fiber": 1.2,
+      "supermarket": "GASTRONOMIA",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "gnocchi_ragu",
+      "nameIt": "Gnocchi al ragù",
+      "category": "PIATTO_UNICO",
+      "roles": [
+        "CENA_PIATTO_UNICO"
+      ],
+      "gramsPerUnit": null,
+      "kcal": 130.0,
+      "protein": 5.5,
+      "carbs": 20.0,
+      "fat": 3.2,
+      "fiber": 1.5,
+      "supermarket": "GASTRONOMIA",
+      "preferred": false,
+      "excludable": true
+    },
+    {
+      "id": "tortellini_brodo",
+      "nameIt": "Tortellini in brodo",
+      "category": "PIATTO_UNICO",
+      "roles": [
+        "CENA_PIATTO_UNICO"
+      ],
+      "gramsPerUnit": null,
+      "kcal": 110.0,
+      "protein": 5.0,
+      "carbs": 12.0,
+      "fat": 4.0,
+      "fiber": 0.6,
+      "supermarket": "GASTRONOMIA",
+      "preferred": false,
+      "excludable": true
     }
   ]
 }

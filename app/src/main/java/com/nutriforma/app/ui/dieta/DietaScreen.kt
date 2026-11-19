@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
 import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.domain.model.ComplianceStatus
+import com.nutriforma.app.ui.food.FoodIconImage
 import com.nutriforma.app.ui.theme.ComplianceOk
 import com.nutriforma.app.ui.theme.ComplianceViolation
 import com.nutriforma.app.ui.theme.ComplianceWarningContainer
@@ -440,7 +441,18 @@ private fun MealCard(meal: MealCardUi, onCompleted: (Boolean) -> Unit, onChange:
                 )
                 Text(meal.timeLabel, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text(meal.summary, style = MaterialTheme.typography.bodyLarge)
+            if (meal.components.isEmpty()) {
+                Text(meal.summary, style = MaterialTheme.typography.bodyLarge)
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    meal.components.forEach { component ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FoodIconImage(component.icon)
+                            Text(component.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
 
             if (meal.kcalBadge != null) {
                 FlowBadges(listOf(meal.kcalBadge) + meal.macroBadges)

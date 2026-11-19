@@ -41,6 +41,7 @@ enum class MealRole(val labelIt: String) {
     CENA_MINESTRONE("Minestrone"),
     CENA_MINESTRONE_AGGIUNTA("Aggiunta proteica"),
     CENA_CONDIMENTO("Condimento"),
+    CENA_PIATTO_UNICO("Piatto unico"),
 }
 
 /** Food category: drives counting, templates and portions (SPEC §1.3). */
@@ -78,6 +79,7 @@ enum class FoodCategory(val labelIt: String) {
     AVOCADO("Avocado"),
     BARRETTA_PROTEICA("Barretta proteica"),
     PASTO_LIBERO("Pasto libero"),
+    PIATTO_UNICO("Piatto unico"),
 }
 
 /** Meal types (SPEC §1.4). [slot] is null for the turno-lungo types that can live in either snack slot. */
@@ -95,6 +97,8 @@ enum class MealType(val labelIt: String, val slot: MealSlot?) {
     CENA_PRIMO_PROTEICO("Primo con condimento proteico", MealSlot.CENA),
     CENA_SECONDO("Secondo piatto", MealSlot.CENA),
     CENA_MINESTRONE("Minestrone completo", MealSlot.CENA),
+    /** Piatto completo di pasta con proteine o carne (pasticcio, carbonara...): sostituisce il primo con condimento proteico. */
+    CENA_PIATTO_UNICO("Piatto unico", MealSlot.CENA),
 }
 
 /** Unit of a planned quantity (SPEC §1.5). */
@@ -107,6 +111,7 @@ enum class PortionUnit(val singularIt: String, val pluralIt: String) {
     TAZZA("tazza", "tazze"),
     PIATTO("piatto", "piatti"),
     PORZIONE("porzione", "porzioni"),
+    MILLILITRI("ml", "ml"),
 }
 
 enum class Goal(val labelIt: String) {
@@ -151,6 +156,7 @@ enum class SupermarketCategory(val labelIt: String, val order: Int) {
     SURGELATI("Surgelati", 9),
     DISPENSA("Dispensa", 10),
     BEVANDE("Caffè e bevande", 11),
+    GASTRONOMIA("Gastronomia e piatti pronti", 12),
 }
 
 enum class ComplianceStatus { OK, ATTENZIONE, VIOLAZIONE }
@@ -159,9 +165,9 @@ enum class ComplianceStatus { OK, ATTENZIONE, VIOLAZIONE }
 enum class RuleId(val labelIt: String) {
     COLAZIONE_DOLCE("Colazioni dolci"),
     PASTO_LIBERO("Pasti liberi"),
-    CENA_PRIMO("Cene con primo piatto"),
-    CENA_PRIMO_VERDURE("Primi con verdure o passata"),
-    CENA_PRIMO_PROTEICO("Primi con condimento proteico"),
+    CENA_PRIMO("Pasta a cena (totale)"),
+    CENA_PRIMO_VERDURE("Pasta con verdure"),
+    CENA_PRIMO_PROTEICO("Pasta con proteine o carne"),
     CENA_SECONDO("Cene con secondo piatto"),
     CENA_MINESTRONE("Minestrone completo"),
     CARNE("Carne"),
@@ -172,6 +178,8 @@ enum class RuleId(val labelIt: String) {
     TONNO("Tonno o sgombro sott'olio"),
     AFFETTATO("Affettato"),
     PATATE("Patate"),
+    BURRO_ARACHIDI_GIORNO("Burro di arachidi (max 1 al giorno)"),
+    SPREMUTA_GIORNO("Spremuta d'arancia (max 1 al giorno)"),
     CARNE_BIANCA_PREFERITA("Preferire carni bianche"),
     ALTERNANZA_META_MATTINA("Alternanza frutta secca / mix"),
     VERDURE_CENA_DIVERSE("Verdure di cena diverse dal pranzo"),

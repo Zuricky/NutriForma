@@ -13,8 +13,12 @@ object ExclusionAdvisor {
     /** Sotto questa soglia di alternative rimaste il gruppo è considerato "quasi esaurito". */
     private const val LOW_AVAILABILITY = 1
 
+    /** Alternative facoltative a un altro pasto (il piatto unico sostituisce il primo proteico): non servono avvisi. */
+    private val ALTERNATIVE_ONLY_TYPES = setOf(MealType.CENA_PIATTO_UNICO)
+
     fun warnings(foods: List<FoodItem>, disliked: Set<String>): List<String> {
         val requiredRoles: Map<MealRole, List<MealType>> = MealType.entries
+            .filter { it !in ALTERNATIVE_ONLY_TYPES }
             .flatMap { type -> MealStructure.specFor(type).filter { it.required }.map { it.role to type } }
             .groupBy({ it.first }, { it.second })
 

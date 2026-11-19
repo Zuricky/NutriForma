@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.food.FoodIconImage
 import com.nutriforma.app.ui.theme.ComplianceWarningText
 
 /** "Cambia": valid alternatives for one meal, with the kcal difference and the weekly-cap badge. */
@@ -75,6 +78,7 @@ fun SwapBottomSheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SwapOptionRow(option: SwapOptionUi, onClick: () -> Unit) {
     Column(
@@ -86,6 +90,11 @@ private fun SwapOptionRow(option: SwapOptionUi, onClick: () -> Unit) {
             .padding(vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
+        if (option.icons.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                option.icons.forEach { FoodIconImage(it, size = 24.dp) }
+            }
+        }
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = option.description,

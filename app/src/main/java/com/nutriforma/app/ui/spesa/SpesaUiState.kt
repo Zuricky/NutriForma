@@ -3,9 +3,11 @@ package com.nutriforma.app.ui.spesa
 import com.nutriforma.app.data.repository.ShoppingExtra
 import com.nutriforma.app.domain.shopping.ShoppingGroup
 import com.nutriforma.app.domain.shopping.ShoppingItem
+import com.nutriforma.app.ui.food.FoodIcon
+import com.nutriforma.app.ui.food.FoodIcons
 
 /** Una riga della lista. [key] = `food:<id>` per gli alimenti della dieta, `extra:<id>` per le voci manuali. */
-data class SpesaRow(val key: String, val title: String, val isChecked: Boolean, val isExtra: Boolean)
+data class SpesaRow(val key: String, val title: String, val isChecked: Boolean, val isExtra: Boolean, val icon: FoodIcon)
 
 data class SpesaSectionUi(val label: String, val rows: List<SpesaRow>)
 
@@ -35,8 +37,8 @@ sealed interface SpesaUiState {
 /** Unisce alimenti della dieta ed extra manuali e li divide in "Da comprare" / "Già in casa / Acquistato". */
 fun buildSpesaContent(items: List<ShoppingItem>, extras: List<ShoppingExtra>): SpesaContent {
     val rows = buildList {
-        items.forEach { add(it.group to SpesaRow(FOOD_KEY_PREFIX + it.foodId, it.title, it.isChecked, false)) }
-        extras.forEach { add(ShoppingGroup.FRUTTA_SECCA_EXTRA to SpesaRow(EXTRA_KEY_PREFIX + it.id, it.name, it.isChecked, true)) }
+        items.forEach { add(it.group to SpesaRow(FOOD_KEY_PREFIX + it.foodId, it.title, it.isChecked, false, FoodIcons.forFoodId(it.foodId, it.category))) }
+        extras.forEach { add(ShoppingGroup.FRUTTA_SECCA_EXTRA to SpesaRow(EXTRA_KEY_PREFIX + it.id, it.name, it.isChecked, true, FoodIcon.BASKET)) }
     }
     fun sections(checked: Boolean): List<SpesaSectionUi> =
         rows.filter { it.second.isChecked == checked }

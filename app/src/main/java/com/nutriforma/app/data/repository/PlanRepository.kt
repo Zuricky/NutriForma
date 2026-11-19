@@ -152,11 +152,18 @@ class PlanRepository(
         mealSwapUseCase.alternativesFor(meal.toDomain(), week, requireFoods(), userProfileRepository.current())
     }
 
-    /** Applies a [MealAlternative.components] list (from [swapAlternatives]) to the stored meal. */
-    suspend fun applyAlternative(mealId: Long, components: List<PlannedComponent>) = withContext(ioDispatcher) {
+    /**
+     * Applies a [MealAlternative.components] list (from [swapAlternatives]) to the stored meal.
+     * [type] cambia solo per primo con condimento proteico <-> piatto unico ([MealAlternative.type]).
+     */
+    suspend fun applyAlternative(
+        mealId: Long,
+        components: List<PlannedComponent>,
+        type: MealType? = null,
+    ) = withContext(ioDispatcher) {
         val meal = mealDao.getById(mealId) ?: throw IllegalArgumentException("Pasto non trovato: $mealId")
         transactions.run {
-            mealDao.update(meal.copy(components = components, isUserModified = true))
+            mealDao.update(meal.copy(type = type ?: meal.type, components = components, isUserModified = true))
             touchPlan(meal.planId)
         }
         onDataChanged()

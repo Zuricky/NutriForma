@@ -77,17 +77,21 @@ class DietaUiStateTest {
     }
 
     @Test
-    fun nineCompliancePillsInTheRequestedOrder() {
+    fun elevenCompliancePillsInTheRequestedOrder() {
         val pills = content().pills
         assertEquals(
             listOf(
                 RuleId.CARNE, RuleId.CARNE_ROSSA, RuleId.PESCE, RuleId.UOVA_TOTALE, RuleId.TONNO,
-                RuleId.AFFETTATO, RuleId.PATATE, RuleId.COLAZIONE_DOLCE, RuleId.PASTO_LIBERO,
+                RuleId.AFFETTATO, RuleId.PATATE, RuleId.CENA_PRIMO_VERDURE, RuleId.CENA_PRIMO_PROTEICO,
+                RuleId.COLAZIONE_DOLCE, RuleId.PASTO_LIBERO,
             ),
             pills.map { it.ruleId },
         )
         assertEquals(
-            listOf("Carne", "Carne rossa", "Pesce", "Uova", "Tonno", "Affettato", "Patate", "Colazione dolce", "Pasti liberi"),
+            listOf(
+                "Carne", "Carne rossa", "Pesce", "Uova", "Tonno", "Affettato", "Patate",
+                "Pasta con verdure", "Pasta con proteine", "Colazione dolce", "Pasti liberi",
+            ),
             pills.map { it.text.substringBefore(" (").dropLastWhile { ch -> ch.isDigit() || ch == ' ' } },
         )
         assertTrue("settimana generata: nessuna violazione", pills.none { it.status == ComplianceStatus.VIOLAZIONE })

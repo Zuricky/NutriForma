@@ -8,6 +8,8 @@ import com.nutriforma.app.data.repository.PlanRepository
 import com.nutriforma.app.domain.model.FoodItem
 import com.nutriforma.app.domain.model.dayIndex
 import com.nutriforma.app.domain.rules.ExclusionAdvisor
+import com.nutriforma.app.ui.food.FoodIcon
+import com.nutriforma.app.ui.food.FoodIcons
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
@@ -22,7 +24,7 @@ import java.text.Normalizer
 import java.time.Clock
 import java.time.LocalDate
 
-data class FoodRowUi(val id: String, val name: String, val excluded: Boolean)
+data class FoodRowUi(val id: String, val name: String, val excluded: Boolean, val icon: FoodIcon)
 
 data class FoodGroupUi(val label: String, val rows: List<FoodRowUi>)
 
@@ -45,7 +47,7 @@ fun buildExclusionGroups(foods: List<FoodItem>, disliked: Set<String>, query: St
         .groupBy { it.category }
         .toSortedMap(compareBy { it.ordinal })
         .map { (category, items) ->
-            FoodGroupUi(category.labelIt, items.map { FoodRowUi(it.id, it.nameIt, it.id in disliked) })
+            FoodGroupUi(category.labelIt, items.map { FoodRowUi(it.id, it.nameIt, it.id in disliked, FoodIcons.forFood(it)) })
         }
 }
 

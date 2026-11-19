@@ -58,6 +58,13 @@ object CategoryTemplates {
 
     fun abbinamentoFor(dayIndex: Int): FoodCategory = ABBINAMENTI[dayIndex % 3]
 
+    /**
+     * Spremuta d'arancia nella generazione automatica: a colazione sostituisce il caffè con probabilità 1 su
+     * [JUICE_BREAKFAST_ODDS] (al massimo una volta a settimana) e nello spuntino del pomeriggio entra nel gruppo
+     * della frutta con lo stesso peso di ogni frutto. Il limite di 1 al giorno resta in `DailyFoodCaps`.
+     */
+    const val JUICE_BREAKFAST_ODDS = 3
+
     fun oppositeSecca(previous: FoodCategory?): FoodCategory = when (previous) {
         null -> FRUTTA_SECCA
         FRUTTA_SECCA -> MIX_FRUTTA
@@ -66,14 +73,19 @@ object CategoryTemplates {
 
     /** Fallback chain of [template] in [context] (SPEC §7.4 table), without the template itself. */
     fun fallbackChain(context: ChainContext, template: FoodCategory): List<FoodCategory> = when (context) {
-        ChainContext.PRANZO_SECONDO, ChainContext.CENA_SECONDO -> when (template) {
+        // La carne è solo a pranzo: nelle catene di fallback della cena non compare mai.
+        ChainContext.PRANZO_SECONDO -> when (template) {
             CARNE_BIANCA -> listOf(PESCE, CARNE_ROSSA, UOVA, TONNO_SGOMBRO)
             CARNE_ROSSA -> listOf(CARNE_BIANCA, PESCE, UOVA, TONNO_SGOMBRO)
             PESCE -> listOf(CARNE_BIANCA, UOVA, TONNO_SGOMBRO, CARNE_ROSSA)
-            UOVA ->
-                if (context == ChainContext.PRANZO_SECONDO) listOf(PESCE, CARNE_BIANCA, TONNO_SGOMBRO)
-                else listOf(PESCE, LEGUMI, CARNE_BIANCA, TONNO_SGOMBRO)
+            UOVA -> listOf(PESCE, CARNE_BIANCA, TONNO_SGOMBRO)
             LEGUMI -> listOf(PESCE, UOVA, CARNE_BIANCA)
+            else -> emptyList()
+        }
+        ChainContext.CENA_SECONDO -> when (template) {
+            PESCE -> listOf(UOVA, TONNO_SGOMBRO, LEGUMI)
+            UOVA -> listOf(PESCE, LEGUMI, TONNO_SGOMBRO)
+            LEGUMI -> listOf(PESCE, UOVA, TONNO_SGOMBRO)
             else -> emptyList()
         }
         ChainContext.PRIMO_PROTEICO -> when (template) {

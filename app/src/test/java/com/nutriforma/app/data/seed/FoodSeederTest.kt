@@ -64,16 +64,18 @@ class FoodSeederTest {
     }
 
     @Test
-    fun firstLaunchSeeds85FoodsInFileOrderAndStoresTheVersion() = runBlocking {
-        assertEquals(85, seeder().seedIfNeeded())
-        assertEquals(85, dao.count())
-        assertEquals(1, profileRepository.current().foodSeedVersion)
-        assertEquals(listOf("Seed: 85 alimenti"), logs)
+    fun firstLaunchSeeds93FoodsInFileOrderAndStoresTheVersion() = runBlocking {
+        assertEquals(93, seeder().seedIfNeeded())
+        assertEquals(93, dao.count())
+        assertEquals(2, profileRepository.current().foodSeedVersion)
+        assertEquals(listOf("Seed: 93 alimenti"), logs)
 
         val stored = dao.getAll()
         assertEquals("prosciutto_crudo", stored.first().id)
-        assertEquals("pasto_libero", stored.last().id)
-        assertEquals((0 until 85).toList(), stored.map { it.sortOrder })
+        // I nuovi alimenti della 1.1 sono in coda: gli indici di ordinamento esistenti non cambiano.
+        assertEquals("pasto_libero", stored[84].id)
+        assertEquals("tortellini_brodo", stored.last().id)
+        assertEquals((0 until 93).toList(), stored.map { it.sortOrder })
         val uovo = stored.single { it.id == "uovo" }
         assertEquals(FoodCategory.UOVA, uovo.category)
         assertTrue(MealRole.COLAZIONE_G1 in uovo.roles)
@@ -87,15 +89,15 @@ class FoodSeederTest {
         assertEquals(0, seeder().seedIfNeeded())
         assertEquals(1, dao.upsertCalls)
         assertEquals(1, logs.size)
-        assertEquals(85, dao.count())
+        assertEquals(93, dao.count())
     }
 
     @Test
     fun emptyTableIsReseededEvenIfTheVersionIsStored() = runBlocking {
         seeder().seedIfNeeded()
         dao.clear()
-        assertEquals(85, seeder().seedIfNeeded())
-        assertEquals(85, dao.count())
+        assertEquals(93, seeder().seedIfNeeded())
+        assertEquals(93, dao.count())
         assertEquals(2, dao.upsertCalls)
     }
 

@@ -35,8 +35,8 @@ class WeeklyCountsTest {
             0, MealSlot.PRANZO,
             PRANZO_SECONDO to "petto_pollo", PRANZO_ACCOMPAGNAMENTO to "mela",
         ).with(
-            1, MealSlot.CENA,
-            CENA_SECONDO to "petto_tacchino", CENA_SECONDO_ACCOMPAGNAMENTO to "mela",
+            1, MealSlot.PRANZO,
+            PRANZO_SECONDO to "petto_tacchino", PRANZO_ACCOMPAGNAMENTO to "mela",
         )
         val c = countsOf(week)
         assertEquals(2, c.carne)
@@ -118,6 +118,6 @@ class WeeklyCountsTest {
         assertEquals(3, c.uovaOccasioni)
         assertEquals(5, c.uovaTotale)
         assertEquals(1, c.patate)
-        assertEquals(TestFoods.all.size, 85)
+        assertEquals(93, TestFoods.all.size)
     }
 }

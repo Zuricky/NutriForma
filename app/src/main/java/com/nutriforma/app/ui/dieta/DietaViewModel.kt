@@ -174,10 +174,11 @@ class DietaViewModel(
         viewModelScope.launch {
             try {
                 val alternatives = planRepository.swapAlternatives(mealId)
+                val foodsById = foodRepository.getFoods().associateBy { it.id }
                 if (pendingMealId != mealId) return@launch // sheet closed meanwhile
                 pendingAlternatives = alternatives
                 overlay.update {
-                    it.copy(swap = SwapSheetState.Loaded(title, alternatives.mapIndexed { i, a -> swapOptionUi(i, a) }))
+                    it.copy(swap = SwapSheetState.Loaded(title, alternatives.mapIndexed { i, a -> swapOptionUi(i, a, foodsById) }))
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -200,7 +201,7 @@ class DietaViewModel(
         if (!alternative.allowed) return
         closeSwap()
         runAction("Non riesco a cambiare il pasto.") {
-            planRepository.applyAlternative(mealId, alternative.components)
+            planRepository.applyAlternative(mealId, alternative.components, alternative.type)
             messages.trySend("Pasto cambiato")
         }
     }

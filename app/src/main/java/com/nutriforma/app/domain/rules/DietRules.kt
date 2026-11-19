@@ -36,13 +36,15 @@ object DietRules {
         fixed(RuleId.TONNO, 0, 1) { it.tonno },
         fixed(RuleId.AFFETTATO, 0, 2) { it.affettato },
         fixed(RuleId.PATATE, 0, 1) { it.patate },
+        fixed(RuleId.BURRO_ARACHIDI_GIORNO, 0, 0) { it.giorniBurroArachidiOltreLimite },
+        fixed(RuleId.SPREMUTA_GIORNO, 0, 0) { it.giorniSpremutaOltreLimite },
     )
 
     /** Rules driven by ingredients (the others are structural: they depend only on meal types). */
     val ingredientCapRules: List<RuleDefinition> = counterRules.filter {
         it.ruleId in setOf(
             RuleId.CARNE, RuleId.CARNE_ROSSA, RuleId.UOVA_OCCASIONI, RuleId.UOVA_TOTALE,
-            RuleId.TONNO, RuleId.AFFETTATO, RuleId.PATATE,
+            RuleId.TONNO, RuleId.AFFETTATO, RuleId.PATATE, RuleId.BURRO_ARACHIDI_GIORNO, RuleId.SPREMUTA_GIORNO,
         )
     }
 

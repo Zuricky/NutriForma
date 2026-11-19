@@ -17,6 +17,8 @@ import com.nutriforma.app.domain.nutrition.PortionFormatter
 import com.nutriforma.app.domain.rules.DietRules
 import com.nutriforma.app.domain.rules.WeeklyComplianceCalculator
 import com.nutriforma.app.domain.swap.MealAlternative
+import com.nutriforma.app.ui.food.FoodIcon
+import com.nutriforma.app.ui.food.FoodIcons
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.util.Locale
@@ -28,6 +30,9 @@ data class DayChipUi(val dayIndex: Int, val shortName: String, val dayOfMonth: I
 
 data class CompliancePillUi(val ruleId: RuleId, val text: String, val status: ComplianceStatus)
 
+/** Una riga della scheda pasto: icona dell'alimento + testo ("Petto di pollo (180 g)"). */
+data class MealComponentUi(val icon: FoodIcon, val text: String)
+
 data class MealCardUi(
     val mealId: Long,
     val slot: MealSlot,
@@ -35,6 +40,8 @@ data class MealCardUi(
     val timeLabel: String,
     /** e.g. "Petto di pollo (180 g) + Patate (150 g) + Verdure + Olio EVO (3 cucchiaini)". */
     val summary: String,
+    /** Le stesse voci di [summary], una per riga, con l'icona dell'alimento. */
+    val components: List<MealComponentUi>,
     /** "540 kcal"; `null` for free / merged meals. */
     val kcalBadge: String?,
     /** "P 32 g", "C 60 g", "G 14 g". */
@@ -79,6 +86,8 @@ data class SwapOptionUi(
     val capBadge: String?,
     val capMessage: String?,
     val softWarnings: List<String>,
+    /** Icone degli alimenti dell'alternativa (senza condimento), per il riconoscimento a colpo d'occhio. */
+    val icons: List<FoodIcon> = emptyList(),
 )
 
 sealed interface SwapSheetState {
@@ -101,6 +110,8 @@ private val PILL_NAMES = mapOf(
     RuleId.TONNO to "Tonno",
     RuleId.AFFETTATO to "Affettato",
     RuleId.PATATE to "Patate",
+    RuleId.CENA_PRIMO_VERDURE to "Pasta con verdure",
+    RuleId.CENA_PRIMO_PROTEICO to "Pasta con proteine",
     RuleId.COLAZIONE_DOLCE to "Colazione dolce",
     RuleId.PASTO_LIBERO to "Pasti liberi",
 )
@@ -140,8 +151,20 @@ fun mealSummary(meal: PlannedMeal, foodsById: Map<String, FoodItem>): String = w
     else -> meal.components.joinToString(" + ") { componentText(it, foodsById) }
 }
 
+/** Voci con icona della scheda pasto; vuote per pasto libero e spuntino accorpato (hanno solo il testo di [mealSummary]). */
+fun mealComponents(meal: PlannedMeal, foodsById: Map<String, FoodItem>): List<MealComponentUi> = when (meal.type) {
+    MealType.SPUNTINO_SALTATO, MealType.PRANZO_LIBERO -> emptyList()
+    else -> meal.components.map { c ->
+        MealComponentUi(
+            icon = foodsById[c.foodId]?.let(FoodIcons::forFood) ?: FoodIcon.DISH,
+            text = componentText(c, foodsById),
+        )
+    }
+}
+
 private fun mealTitle(meal: PlannedMeal): String = when (meal.type) {
     MealType.COLAZIONE_DOLCE -> "Colazione dolce"
+    MealType.CENA_PIATTO_UNICO -> "Cena · Piatto unico"
     MealType.PRANZO_LIBERO -> "Pranzo · Pasto libero"
     MealType.SPUNTINO_TURNO_LUNGO, MealType.BARRETTA_TURNO_LUNGO -> "${meal.slot.labelIt} · Turno lungo"
     else -> meal.slot.labelIt
@@ -152,14 +175,21 @@ private fun macroBadges(t: NutritionTotals): List<String> =
 
 fun swapSheetTitle(meal: PlannedMeal): String = "${mealTitle(meal)} · ${DayNames.it[meal.dayIndex]}"
 
-fun swapOptionUi(index: Int, alt: MealAlternative) = SwapOptionUi(
+fun swapOptionUi(index: Int, alt: MealAlternative, foodsById: Map<String, FoodItem> = emptyMap()) = SwapOptionUi(
     index = index,
     description = alt.descriptionIt,
     kcalDeltaText = formatKcalDelta(alt.kcalDelta),
     allowed = alt.allowed,
-    capBadge = if (alt.exceedsWeeklyCap) "Supera il limite settimanale" else null,
+    capBadge = when {
+        !alt.exceedsWeeklyCap -> null
+        alt.exceedsDailyCap -> "Supera il limite giornaliero"
+        else -> "Supera il limite settimanale"
+    },
     capMessage = alt.warningMessageIt,
     softWarnings = alt.softWarningsIt,
+    icons = alt.components
+        .filter { it.role != MealRole.PRANZO_CONDIMENTO && it.role != MealRole.CENA_CONDIMENTO }
+        .mapNotNull { c -> foodsById[c.foodId]?.let(FoodIcons::forFood) },
 )
 
 /** Builds everything the Dieta screen shows. Pure: no Android, no clock (callers pass [today]). */
@@ -224,6 +254,7 @@ fun buildDietaContent(
                 title = mealTitle(meal),
                 timeLabel = timeLabel(meal.slot),
                 summary = mealSummary(meal, foodsById),
+                components = mealComponents(meal, foodsById),
                 kcalBadge = if (noKcal) null else formatKcal(totals.kcal),
                 macroBadges = if (noKcal) emptyList() else macroBadges(totals),
                 isCompleted = meal.id in completedMealIds,

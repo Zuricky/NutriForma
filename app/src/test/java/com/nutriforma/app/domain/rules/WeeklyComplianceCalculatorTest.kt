@@ -22,22 +22,28 @@ class WeeklyComplianceCalculatorTest {
     private val profile = UserProfile()
 
     @Test
-    fun liveCountersAreTheNineRequestedOnesInOrder() {
+    fun liveCountersAreTheElevenRequestedOnesInOrder() {
         val snapshot = calculator.calculate(generate().meals, foods, profile)
         assertEquals(
             listOf(
                 RuleId.CARNE, RuleId.CARNE_ROSSA, RuleId.PESCE, RuleId.UOVA_TOTALE, RuleId.TONNO,
-                RuleId.AFFETTATO, RuleId.PATATE, RuleId.COLAZIONE_DOLCE, RuleId.PASTO_LIBERO,
+                RuleId.AFFETTATO, RuleId.PATATE, RuleId.CENA_PRIMO_VERDURE, RuleId.CENA_PRIMO_PROTEICO,
+                RuleId.COLAZIONE_DOLCE, RuleId.PASTO_LIBERO,
             ),
             snapshot.liveCounters.map { it.ruleId },
         )
         val c = snapshot.counts
         assertEquals(
-            listOf(c.carne, c.carneRossa, c.pesce, c.uovaTotale, c.tonno, c.affettato, c.patate, c.colazioniDolci, c.pastiLiberi),
+            listOf(
+                c.carne, c.carneRossa, c.pesce, c.uovaTotale, c.tonno, c.affettato, c.patate,
+                c.cenePrimoVerdure, c.cenePrimoProteico, c.colazioniDolci, c.pastiLiberi,
+            ),
             snapshot.liveCounters.map { it.value },
         )
         assertEquals(
-            listOf("Carne", "Carne rossa", "Pesce", "Uova (totale)", "Tonno o sgombro sott'olio", "Affettato", "Patate", "Colazioni dolci", "Pasti liberi"),
+            listOf("Carne", "Carne rossa", "Pesce", "Uova (totale)", "Tonno o sgombro sott'olio", "Affettato", "Patate",
+                "Pasta con verdure", "Pasta con proteine o carne", "Colazioni dolci", "Pasti liberi",
+            ),
             snapshot.liveCounters.map { it.labelIt },
         )
         assertFalse(snapshot.report.hasViolations)

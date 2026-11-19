@@ -21,6 +21,14 @@ import com.nutriforma.app.domain.model.UserProfile
  */
 class DietRuleEngine {
 
+    private companion object {
+        /** Regole giornaliere: `foodId` e nome mostrato nei messaggi. */
+        val DAILY_RULE_FOODS = mapOf(
+            RuleId.BURRO_ARACHIDI_GIORNO to (DailyFoodCaps.BURRO_ARACHIDI to "Burro di arachidi"),
+            RuleId.SPREMUTA_GIORNO to (DailyFoodCaps.SPREMUTA_ARANCIA to "Spremuta d'arancia"),
+        )
+    }
+
     // ---- Generation facade --------------------------------------------------------------------------------
 
     /** Generates the 7-day plan (35 meals) that obeys every hard cap and honours the exclusions. */
@@ -60,6 +68,18 @@ class DietRuleEngine {
         val min = rule.min(profile)
         val max = rule.max(profile)
         val label = rule.ruleId.labelIt
+        val daily = DAILY_RULE_FOODS[rule.ruleId]
+        if (daily != null) {
+            val dailyMax = DailyFoodCaps.maxPerDay.getValue(daily.first)
+            return if (value > 0) {
+                RuleCheck(
+                    rule.ruleId, label, value, min, max, ComplianceStatus.VIOLAZIONE,
+                    "${daily.second}: in $value ${if (value == 1) "giorno" else "giorni"} compare più di $dailyMax volta al giorno — limite superato",
+                )
+            } else {
+                RuleCheck(rule.ruleId, label, value, min, max, ComplianceStatus.OK, "${daily.second}: massimo $dailyMax al giorno, rispettato")
+            }
+        }
         val base = "$label: $value (obiettivo ${DietRules.rangeText(min, max)})"
         return when {
             max != null && value > max -> RuleCheck(
@@ -86,14 +106,18 @@ class DietRuleEngine {
             RuleId.PESCE -> available.none { it.category == FoodCategory.PESCE }
             RuleId.UOVA_OCCASIONI, RuleId.UOVA_TOTALE -> "uovo" in profile.dislikedFoodIds || available.none { it.category == FoodCategory.UOVA }
             RuleId.COLAZIONE_DOLCE -> available.none { it.category == FoodCategory.DOLCE_COLAZIONE }
-            RuleId.CENA_PRIMO -> !typeReachable(MealType.CENA_PRIMO_VERDURE) && !typeReachable(MealType.CENA_PRIMO_PROTEICO)
+            RuleId.CENA_PRIMO -> !typeReachable(MealType.CENA_PRIMO_VERDURE) && !proteicoReachable(::typeReachable)
             RuleId.CENA_PRIMO_VERDURE -> !typeReachable(MealType.CENA_PRIMO_VERDURE)
-            RuleId.CENA_PRIMO_PROTEICO -> !typeReachable(MealType.CENA_PRIMO_PROTEICO)
+            RuleId.CENA_PRIMO_PROTEICO -> !proteicoReachable(::typeReachable)
             RuleId.CENA_SECONDO -> !typeReachable(MealType.CENA_SECONDO)
             RuleId.CENA_MINESTRONE -> !typeReachable(MealType.CENA_MINESTRONE)
             else -> false
         }
     }
+
+    /** La "pasta con proteine o carne" si può comporre con un condimento proteico oppure con un piatto completo. */
+    private fun proteicoReachable(typeReachable: (MealType) -> Boolean) =
+        typeReachable(MealType.CENA_PRIMO_PROTEICO) || typeReachable(MealType.CENA_PIATTO_UNICO)
 
     // ---- Soft quality rules (SPEC §4.3) ---------------------------------------------------------------------
 

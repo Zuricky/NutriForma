@@ -37,6 +37,8 @@ object MealStructure {
         MealType.CENA_SECONDO to listOf(
             req(CENA_VERDURE), req(CENA_SECONDO), req(CENA_SECONDO_ACCOMPAGNAMENTO), req(CENA_CONDIMENTO),
         ),
+        // Piatto completo: verdure di contorno + il piatto; nessun secondo e nessun condimento a parte.
+        MealType.CENA_PIATTO_UNICO to listOf(req(CENA_VERDURE), req(CENA_PIATTO_UNICO)),
         MealType.CENA_MINESTRONE to listOf(
             req(CENA_VERDURE), req(CENA_MINESTRONE), req(CENA_MINESTRONE_AGGIUNTA), req(CENA_CONDIMENTO),
         ),

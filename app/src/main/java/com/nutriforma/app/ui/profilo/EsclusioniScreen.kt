@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.food.FoodIconImage
 import com.nutriforma.app.ui.theme.ComplianceWarningContainer
 import com.nutriforma.app.ui.theme.ComplianceWarningText
 
@@ -129,7 +130,8 @@ fun EsclusioniScreen(viewModel: EsclusioniViewModel, onBack: () -> Unit, modifie
                                     .clickable(role = Role.Checkbox) { viewModel.toggle(row.id) },
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Checkbox(checked = row.excluded, onCheckedChange = null, modifier = Modifier.padding(end = 12.dp))
+                                Checkbox(checked = row.excluded, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
+                                FoodIconImage(row.icon, size = 24.dp, modifier = Modifier.padding(end = 12.dp))
                                 Text(
                                     row.name,
                                     style = MaterialTheme.typography.bodyLarge,

@@ -57,18 +57,25 @@ object PortionTable {
         cat(COLAZIONE_G2, FoodCategory.FRUTTA_FRESCA, 150.0),
         cat(COLAZIONE_DOLCIFICANTE, FoodCategory.DOLCIFICANTE, 1.0, unit = CUCCHIAINI),
         cat(COLAZIONE_BEVANDA, FoodCategory.BEVANDA, 1.0, unit = TAZZINA),
+        food(COLAZIONE_BEVANDA, "spremuta_arancia", 200.0, 250.0, unit = MILLILITRI, hint = "meglio se appena spremuta"),
         // Torta first: the "di preparazione casalinga" hint applies to the torta only (SPEC §3).
         food(COLAZIONE_DOLCE, "torta_casalinga", 1.0, unit = PEZZI, hint = "di preparazione casalinga"),
+        food(COLAZIONE_DOLCE, "biscotti", 2.0, unit = PEZZI, hint = "circa 25 g"),
+        food(COLAZIONE_DOLCE, "burro_arachidi", 15.0, 20.0, hint = "circa 1 cucchiaio, da spalmare"),
         cat(COLAZIONE_DOLCE, FoodCategory.DOLCE_COLAZIONE, 1.0, unit = PEZZI),
         food(COLAZIONE_DOLCE_BEVANDA, "caffe_espresso", 1.0, unit = TAZZINA),
         food(COLAZIONE_DOLCE_BEVANDA, "cappuccino", 1.0, unit = TAZZA),
+        food(COLAZIONE_DOLCE_BEVANDA, "spremuta_arancia", 200.0, 250.0, unit = MILLILITRI, hint = "meglio se appena spremuta"),
         // Spuntini
         cat(SPUNTINO_SECCA, FoodCategory.FRUTTA_SECCA, 15.0, hint = "non salata (es. 12 mandorle o 3 noci)"),
         cat(SPUNTINO_SECCA, FoodCategory.MIX_FRUTTA, 20.0, 25.0),
+        food(SPUNTINO_SECCA, "burro_arachidi", 15.0, 20.0, hint = "circa 1 cucchiaio, senza zuccheri aggiunti"),
         cat(SPUNTINO_FRUTTA, FoodCategory.FRUTTA_FRESCA, 150.0, hint = "1 frutto"),
+        food(SPUNTINO_FRUTTA, "spremuta_arancia", 200.0, 250.0, unit = MILLILITRI, hint = "meglio se appena spremuta"),
         cat(SPUNTINO_ABBINAMENTO, FoodCategory.CIOCCOLATO, 15.0, hint = "min. 80% cacao"),
         cat(SPUNTINO_ABBINAMENTO, FoodCategory.FORMAGGIO_STAGIONATO, 20.0, hint = "1 cubetto"),
         cat(SPUNTINO_ABBINAMENTO, FoodCategory.AVOCADO, 80.0, hint = "circa ½ avocado"),
+        food(SPUNTINO_ABBINAMENTO, "burro_arachidi", 15.0, 20.0, hint = "circa 1 cucchiaio, da spalmare sulla frutta"),
         cat(SPUNTINO_BARRETTA, FoodCategory.BARRETTA_PROTEICA, 1.0, unit = PEZZI),
         // Pranzo
         cat(PRANZO_ANTIPASTO, FoodCategory.VERDURE, 200.0, hint = "crude o cotte, a volontà"),
@@ -83,7 +90,7 @@ object PortionTable {
         cat(PRANZO_ACCOMPAGNAMENTO, FoodCategory.CEREALE_CHICCO, 30.0, scalable = true, hint = "peso a crudo"),
         cat(PRANZO_ACCOMPAGNAMENTO, FoodCategory.FRUTTA_FRESCA, 150.0),
         cat(PRANZO_CONDIMENTO, FoodCategory.OLIO, 3.0, unit = CUCCHIAINI, gPerUnit = 5.0, hint = "preferibilmente a crudo"),
-        cat(PRANZO_LIBERO, FoodCategory.PASTO_LIBERO, 1.0, unit = PORZIONE, hint = "es. pasticcio o sushi"),
+        cat(PRANZO_LIBERO, FoodCategory.PASTO_LIBERO, 1.0, unit = PORZIONE, hint = "es. pizza o sushi"),
         // Cena
         cat(CENA_VERDURE, FoodCategory.VERDURE, 200.0, hint = "antipasto o contorno, crude o cotte"),
         cat(CENA_PRIMO_BASE, FoodCategory.PASTA, 70.0, 80.0, scalable = true, hint = "peso a crudo"),
@@ -96,8 +103,7 @@ object PortionTable {
         cat(CENA_PRIMO_CONDIMENTO_PROTEICO, FoodCategory.PESCE, 100.0, hint = "fresco o surgelato"),
         cat(CENA_PRIMO_CONDIMENTO_PROTEICO, FoodCategory.RAGU, 1.0, unit = CUCCHIAI, gPerUnit = 20.0),
         cat(CENA_PRIMO_CONDIMENTO_PROTEICO, FoodCategory.PESTO, 1.0, unit = CUCCHIAI, gPerUnit = 15.0),
-        cat(CENA_SECONDO, FoodCategory.CARNE_BIANCA, 100.0, 120.0, scalable = true, hint = "1 porzione"),
-        cat(CENA_SECONDO, FoodCategory.CARNE_ROSSA, 100.0, 120.0, scalable = true, hint = "1 porzione"),
+        // Niente carne a cena: i secondi di carne sono solo a pranzo (PRANZO_SECONDO).
         cat(CENA_SECONDO, FoodCategory.PESCE, 150.0, 180.0, scalable = true, hint = "1 porzione"),
         cat(CENA_SECONDO, FoodCategory.UOVA, 2.0, unit = PEZZI),
         cat(CENA_SECONDO, FoodCategory.LEGUMI, 150.0, scalable = true, hint = "lessati"),
@@ -105,6 +111,11 @@ object PortionTable {
         cat(CENA_SECONDO_ACCOMPAGNAMENTO, FoodCategory.PANE, 40.0, scalable = true),
         cat(CENA_SECONDO_ACCOMPAGNAMENTO, FoodCategory.FRUTTA_FRESCA, 150.0),
         cat(CENA_SECONDO_ACCOMPAGNAMENTO, FoodCategory.CEREALE_CHICCO, 30.0, scalable = true, hint = "peso a crudo"),
+        // Piatti completi: 1 porzione, niente secondo; i grammi (per kcal e macro) sono quelli di una porzione.
+        food(CENA_PIATTO_UNICO, "pasticcio", 1.0, unit = PORZIONE, gPerUnit = 330.0, hint = "piatto unico"),
+        food(CENA_PIATTO_UNICO, "carbonara", 1.0, unit = PORZIONE, gPerUnit = 320.0, hint = "piatto unico"),
+        food(CENA_PIATTO_UNICO, "gnocchi_ragu", 1.0, unit = PORZIONE, gPerUnit = 350.0, hint = "piatto unico"),
+        food(CENA_PIATTO_UNICO, "tortellini_brodo", 1.0, unit = PORZIONE, gPerUnit = 400.0, hint = "piatto unico"),
         cat(CENA_MINESTRONE, FoodCategory.MINESTRONE, 1.0, unit = PIATTO, gPerUnit = 300.0, hint = "1 piatto"),
         food(CENA_MINESTRONE_AGGIUNTA, "ricotta", 50.0, hint = "½ ricotta"),
         cat(CENA_MINESTRONE_AGGIUNTA, FoodCategory.UOVA, 1.0, unit = PEZZI),
@@ -123,7 +134,7 @@ object PortionTable {
     /** Grams for one unit of [row] applied to [food], or `null` when neither the row nor the food defines it. */
     fun gramsPerUnit(row: PortionRow, food: FoodItem): Double? = when (row.unit) {
         GRAMMI -> 1.0
-        PORZIONE -> 0.0
+        PORZIONE -> row.gPerUnit ?: 0.0 // 0 = pasto libero (nessun valore nutrizionale)
         else -> row.gPerUnit ?: food.gramsPerUnit
     }
 }

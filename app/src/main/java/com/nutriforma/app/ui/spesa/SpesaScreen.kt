@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.food.FoodIconImage
 import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.data.repository.ShoppingExtrasRepository
 import com.nutriforma.app.domain.model.DayNames
@@ -264,7 +265,8 @@ private fun SpesaRowView(row: SpesaRow, onChecked: (String, Boolean) -> Unit, on
         Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Checkbox) { onChecked(row.key, !row.isChecked) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = row.isChecked, onCheckedChange = null, modifier = Modifier.padding(end = 12.dp))
+        Checkbox(checked = row.isChecked, onCheckedChange = null, modifier = Modifier.padding(end = 4.dp))
+        FoodIconImage(row.icon, size = 24.dp, modifier = Modifier.padding(end = 12.dp))
         Text(
             row.title,
             style = MaterialTheme.typography.bodyLarge,

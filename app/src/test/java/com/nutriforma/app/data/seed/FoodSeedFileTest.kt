@@ -37,10 +37,10 @@ class FoodSeedFileTest {
     // ---- File structure ---------------------------------------------------------------------------------
 
     @Test
-    fun fileExistsAndHas85FoodsAtSeedVersion1() {
+    fun fileExistsAndHas93FoodsAtSeedVersion2() {
         assertTrue("File mancante: ${seedFile.absolutePath}", seedFile.isFile)
-        assertEquals(1, seed.seedVersion)
-        assertEquals(85, seed.foods.size)
+        assertEquals(2, seed.seedVersion)
+        assertEquals(93, seed.foods.size)
     }
 
     @Test
@@ -54,7 +54,7 @@ class FoodSeedFileTest {
     @Test
     fun everyEnumStringParses() {
         // toDomain() throws IllegalArgumentException with the food id on any unknown category/role/supermarket.
-        assertEquals(85, foods.size)
+        assertEquals(93, foods.size)
         foods.forEach { assertTrue("${it.id}: nessun ruolo", it.roles.isNotEmpty()) }
     }
 
@@ -139,8 +139,8 @@ class FoodSeedFileTest {
         assertEquals(1, count(UOVA))
         assertEquals(1, count(PATATE))
         assertTrue(count(LEGUMI) >= 2)
-        // 2 colazioni dolci/settimana: torta e brioche.
-        assertEquals(setOf("torta_casalinga", "brioche"), foods.filter { it.category == DOLCE_COLAZIONE }.map { it.id }.toSet())
+        // 2 colazioni dolci/settimana: torta, brioche e biscotti.
+        assertEquals(setOf("torta_casalinga", "brioche", "biscotti"), foods.filter { it.category == DOLCE_COLAZIONE }.map { it.id }.toSet())
         // Primo con condimento proteico: uovo, tonno/sgombro, pesce, ragù, pesto.
         listOf(UOVA, TONNO_SGOMBRO, PESCE, RAGU, PESTO).forEach { category ->
             assertTrue(
@@ -159,9 +159,14 @@ class FoodSeedFileTest {
     @Test
     fun spuntinoAndColazioneGroupsFollowTheSpec() {
         assertEquals(setOf(FRUTTA_SECCA, MIX_FRUTTA), foodsFor(MealRole.SPUNTINO_SECCA).map { it.category }.toSet())
+        // Abbinamento: cioccolato, formaggio, avocado e (solo a scelta, max 1 al giorno) burro di arachidi.
         assertEquals(
-            setOf(CIOCCOLATO, FORMAGGIO_STAGIONATO, AVOCADO),
+            setOf(CIOCCOLATO, FORMAGGIO_STAGIONATO, AVOCADO, FRUTTA_SECCA),
             foodsFor(MealRole.SPUNTINO_ABBINAMENTO).map { it.category }.toSet(),
+        )
+        assertEquals(
+            listOf("burro_arachidi"),
+            foodsFor(MealRole.SPUNTINO_ABBINAMENTO).filter { it.category == FRUTTA_SECCA }.map { it.id },
         )
         assertEquals(
             setOf(AFFETTATO, UOVA, PESCE_AFFUMICATO, LATTICINI),
@@ -177,7 +182,10 @@ class FoodSeedFileTest {
             foodsFor(MealRole.COLAZIONE_G2).filter { it.category == PANE }.map { it.id }.toSet(),
         )
         // Caffè o ginseng; miele o marmellata.
-        assertEquals(setOf("caffe_espresso", "caffe_ginseng"), foodsFor(MealRole.COLAZIONE_BEVANDA).map { it.id }.toSet())
+        assertEquals(
+            setOf("caffe_espresso", "caffe_ginseng", "spremuta_arancia"),
+            foodsFor(MealRole.COLAZIONE_BEVANDA).map { it.id }.toSet(),
+        )
         assertEquals(setOf("miele", "marmellata"), foodsFor(MealRole.COLAZIONE_DOLCIFICANTE).map { it.id }.toSet())
         // Cioccolato fondente almeno all'80%.
         assertTrue(byId.getValue("cioccolato_fondente_80").nameIt.contains("80%"))
@@ -198,9 +206,9 @@ class FoodSeedFileTest {
             setOf(CARNE_BIANCA, CARNE_ROSSA, PESCE, UOVA, TONNO_SGOMBRO),
             foodsFor(MealRole.PRANZO_SECONDO).map { it.category }.toSet(),
         )
-        // Cena secondo: anche i legumi.
+        // Cena secondo: niente carne (solo a pranzo), ma anche i legumi.
         assertEquals(
-            setOf(CARNE_BIANCA, CARNE_ROSSA, PESCE, UOVA, LEGUMI, TONNO_SGOMBRO),
+            setOf(PESCE, UOVA, LEGUMI, TONNO_SGOMBRO),
             foodsFor(MealRole.CENA_SECONDO).map { it.category }.toSet(),
         )
         // Primo: pasta oppure riso (per i cereali in chicco solo riso).
@@ -215,6 +223,102 @@ class FoodSeedFileTest {
         assertEquals(listOf("olio_evo"), foodsFor(MealRole.CENA_CONDIMENTO).map { it.id })
         assertEquals(listOf("minestrone_verdure"), foodsFor(MealRole.CENA_MINESTRONE).map { it.id })
         assertEquals(listOf("barretta_proteica"), foodsFor(MealRole.SPUNTINO_BARRETTA).map { it.id })
+    }
+
+    // ---- Release 1.1: carne solo a pranzo, pasta solo a cena, nuovi alimenti -----------------------------
+
+    private val newFoodIds = listOf(
+        "biscotti", "burro_arachidi", "spremuta_arancia", "polpo", "pasticcio", "carbonara", "gnocchi_ragu", "tortellini_brodo",
+    )
+
+    @Test
+    fun newFoodsExistWithItalianNames() {
+        assertEquals("Biscotti", byId.getValue("biscotti").nameIt)
+        assertEquals("Burro di arachidi", byId.getValue("burro_arachidi").nameIt)
+        assertEquals("Spremuta d'arancia", byId.getValue("spremuta_arancia").nameIt)
+        assertEquals("Polpo", byId.getValue("polpo").nameIt)
+        assertEquals("Pasticcio", byId.getValue("pasticcio").nameIt)
+        assertEquals("Carbonara", byId.getValue("carbonara").nameIt)
+        assertEquals("Gnocchi al ragù", byId.getValue("gnocchi_ragu").nameIt)
+        assertEquals("Tortellini in brodo", byId.getValue("tortellini_brodo").nameIt)
+        newFoodIds.forEach { assertTrue("$it: escludibile", byId.getValue(it).isExcludable) }
+    }
+
+    @Test
+    fun existingFoodIdsAreNeverRemoved() {
+        val v1 = listOf(
+            "prosciutto_crudo", "uovo", "pane_integrale", "mela", "caffe_espresso", "torta_casalinga", "mandorle", "zucchine",
+            "petto_pollo", "manzo_magro", "merluzzo", "tonno_sottolio", "ceci_lessati", "patate", "riso_integrale",
+            "pasta_integrale", "minestrone_verdure", "ragu_carne", "pesto_genovese", "olio_evo", "pasto_libero",
+        )
+        v1.forEach { assertTrue("alimento rimosso: $it", it in byId) }
+    }
+
+    @Test
+    fun meatIsLunchOnly() {
+        foods.filter { it.category == CARNE_BIANCA || it.category == CARNE_ROSSA }.forEach { meat ->
+            assertTrue("${meat.id}: manca il pranzo", MealRole.PRANZO_SECONDO in meat.roles)
+            assertFalse("${meat.id}: carne a cena", MealRole.CENA_SECONDO in meat.roles)
+        }
+        assertTrue(
+            PortionTable.rows.none { it.role == MealRole.CENA_SECONDO && (it.category == CARNE_BIANCA || it.category == CARNE_ROSSA) },
+        )
+        // Gli affettati restano per colazione e minestrone.
+        assertTrue(foodsFor(MealRole.COLAZIONE_G1).any { it.category == AFFETTATO })
+        assertTrue(foodsFor(MealRole.CENA_MINESTRONE_AGGIUNTA).any { it.category == AFFETTATO })
+    }
+
+    @Test
+    fun pastaAndCompleteDishesAreDinnerOnly() {
+        val dinnerRoles = setOf(
+            MealRole.CENA_VERDURE, MealRole.CENA_PRIMO_BASE, MealRole.CENA_PRIMO_CONDIMENTO_VERDURE, MealRole.CENA_PRIMO_GRANA,
+            MealRole.CENA_PRIMO_CONDIMENTO_PROTEICO, MealRole.CENA_SECONDO, MealRole.CENA_SECONDO_ACCOMPAGNAMENTO,
+            MealRole.CENA_MINESTRONE, MealRole.CENA_MINESTRONE_AGGIUNTA, MealRole.CENA_CONDIMENTO, MealRole.CENA_PIATTO_UNICO,
+        )
+        foods.filter { it.category == PASTA || it.category == PIATTO_UNICO }.forEach { f ->
+            assertTrue("${f.id}: ruoli non di cena ${f.roles}", f.roles.all { it in dinnerRoles })
+        }
+        assertEquals(
+            setOf("pasticcio", "carbonara", "gnocchi_ragu", "tortellini_brodo"),
+            foodsFor(MealRole.CENA_PIATTO_UNICO).map { it.id }.toSet(),
+        )
+        assertTrue(foodsFor(MealRole.CENA_PIATTO_UNICO).all { it.category == PIATTO_UNICO })
+    }
+
+    @Test
+    fun polpoIsFishAtLunchAndDinner() {
+        val polpo = byId.getValue("polpo")
+        assertEquals(PESCE, polpo.category)
+        assertEquals(
+            setOf(MealRole.PRANZO_SECONDO, MealRole.CENA_SECONDO, MealRole.CENA_PRIMO_CONDIMENTO_PROTEICO),
+            polpo.roles,
+        )
+    }
+
+    @Test
+    fun biscottiBurroAndSpremutaRolesAndPortions() {
+        val biscotti = byId.getValue("biscotti")
+        assertEquals(DOLCE_COLAZIONE, biscotti.category)
+        assertEquals(setOf(MealRole.COLAZIONE_DOLCE), biscotti.roles)
+        val burro = byId.getValue("burro_arachidi")
+        assertEquals(setOf(MealRole.COLAZIONE_DOLCE, MealRole.SPUNTINO_SECCA, MealRole.SPUNTINO_ABBINAMENTO), burro.roles)
+        val spremuta = byId.getValue("spremuta_arancia")
+        assertEquals(
+            setOf(MealRole.COLAZIONE_BEVANDA, MealRole.COLAZIONE_DOLCE_BEVANDA, MealRole.SPUNTINO_FRUTTA),
+            spremuta.roles,
+        )
+        spremuta.roles.forEach { role ->
+            val row = PortionTable.find(role, spremuta)!!
+            assertEquals(PortionUnit.MILLILITRI, row.unit)
+            assertEquals(200.0, row.min, 0.0)
+            assertEquals(250.0, row.max, 0.0)
+        }
+        burro.roles.forEach { role ->
+            val row = PortionTable.find(role, burro)!!
+            assertEquals(PortionUnit.GRAMMI, row.unit)
+            assertEquals(15.0, row.min, 0.0)
+            assertEquals(20.0, row.max, 0.0)
+        }
     }
 
     @Test
@@ -237,6 +341,7 @@ class FoodSeedFileTest {
             "uovo" to 55.0, "fette_biscottate_integrali" to 9.0, "fette_biscottate" to 9.0, "caffe_espresso" to 30.0,
             "caffe_ginseng" to 30.0, "cappuccino" to 150.0, "torta_casalinga" to 60.0, "brioche" to 50.0,
             "barretta_proteica" to 45.0, "miele" to 7.0, "marmellata" to 10.0,
+            "biscotti" to 13.0, "spremuta_arancia" to 1.0, // 2 biscotti = 26 g; spremuta: 1 ml = 1 g
         )
         expected.forEach { (id, grams) -> assertEquals("gramsPerUnit di $id", grams, byId.getValue(id).gramsPerUnit) }
         // Tutti gli altri alimenti sono "a grammi".
@@ -284,6 +389,7 @@ class FoodSeedFileTest {
             listOf(
                 "Frutta e verdura", "Macelleria", "Pescheria", "Salumi e formaggi", "Latte, yogurt e uova", "Pane e forno",
                 "Pasta, riso e cereali", "Conserve e sughi", "Frutta secca e snack", "Surgelati", "Dispensa", "Caffè e bevande",
+                "Gastronomia e piatti pronti",
             ),
             SupermarketCategory.entries.sortedBy { it.order }.map { it.labelIt },
         )
@@ -323,6 +429,7 @@ class FoodSeedFileTest {
             DOLCIFICANTE to SupermarketCategory.DISPENSA,
             BEVANDA to SupermarketCategory.BEVANDE,
             PASTO_LIBERO to null,
+            PIATTO_UNICO to SupermarketCategory.GASTRONOMIA,
         )
         assertEquals("mappa di test incompleta", FoodCategory.entries.toSet(), expected.keys)
         foods.forEach { assertEquals("${it.id}: reparto", expected.getValue(it.category), it.supermarketCategory) }

@@ -44,7 +44,7 @@ class PortionCalculator {
 
         val grams = when (row.unit) {
             PortionUnit.GRAMMI -> quantity
-            PortionUnit.PORZIONE -> 0.0
+            PortionUnit.PORZIONE -> quantity * (row.gPerUnit ?: 0.0)
             else -> {
                 val perUnit = row.gPerUnit ?: food.gramsPerUnit
                     ?: throw IllegalArgumentException("Grammi per unità mancanti: ${food.id}")

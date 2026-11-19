@@ -101,7 +101,7 @@ class MealSwapUseCaseTest {
         var checked = 0
         for (meal in week) {
             for (alt in alternatives(meal, max = 60)) {
-                val newMeal = meal.copy(components = alt.components)
+                val newMeal = meal.copy(type = alt.type, components = alt.components)
                 assertMealStructure(newMeal)
                 val newWeek = week.map { if (it.dayIndex == meal.dayIndex && it.slot == meal.slot) newMeal else it }
                 val violated = engine.evaluate(newWeek, foods, profile).hasViolations

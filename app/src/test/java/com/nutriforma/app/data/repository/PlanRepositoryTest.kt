@@ -229,6 +229,36 @@ class PlanRepositoryTest {
     }
 
     @Test
+    fun applyAlternativeCanTurnAProteinPrimoIntoACompleteDishAndBack() = runBlocking {
+        val plan = repository.getOrCreateWeek(monday)
+        val primo = plan.meals.first { it.type == MealType.CENA_PRIMO_PROTEICO }
+        val toDish = repository.swapAlternatives(primo.id).first { it.type == MealType.CENA_PIATTO_UNICO && it.allowed }
+
+        repository.applyAlternative(primo.id, toDish.components, toDish.type)
+
+        val stored = mealDao.getById(primo.id)!!
+        assertEquals(MealType.CENA_PIATTO_UNICO, stored.type)
+        assertEquals(toDish.components, stored.components)
+        assertTrue(stored.isUserModified)
+        assertEquals(35, mealDao.meals.value.size)
+        val week = repository.getOrCreateWeek(monday).meals
+        assertMealStructure(week.first { it.id == primo.id })
+        assertEquals(2, com.nutriforma.app.domain.rules.WeeklyCounter.count(week, TestFoods.byId).cenePrimoProteico)
+        assertTrue(!DietRuleEngine().evaluate(week, TestFoods.byId, com.nutriforma.app.domain.model.UserProfile()).hasViolations)
+
+        // Dal piatto completo si torna a un primo con condimento proteico.
+        val back = repository.swapAlternatives(primo.id).first { it.type == MealType.CENA_PRIMO_PROTEICO && it.allowed }
+        repository.applyAlternative(primo.id, back.components, back.type)
+        assertEquals(MealType.CENA_PRIMO_PROTEICO, mealDao.getById(primo.id)!!.type)
+        assertMealStructure(repository.getOrCreateWeek(monday).meals.first { it.id == primo.id })
+
+        // Senza tipo (chiamanti esistenti) il tipo del pasto non cambia.
+        val lunch = plan.meals.first { it.dayIndex == 0 && it.slot == MealSlot.PRANZO }
+        repository.applyAlternative(lunch.id, repository.swapAlternatives(lunch.id).first { it.allowed }.components)
+        assertEquals(MealType.PRANZO_STANDARD, mealDao.getById(lunch.id)!!.type)
+    }
+
+    @Test
     fun pastoLiberoToggleRespectsTheWeeklyQuota() = runBlocking {
         val plan = repository.getOrCreateWeek(monday)
         val monday0 = plan.meals.first { it.dayIndex == 0 && it.slot == MealSlot.PRANZO }

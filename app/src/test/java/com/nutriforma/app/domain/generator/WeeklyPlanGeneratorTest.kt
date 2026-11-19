@@ -13,6 +13,7 @@ import com.nutriforma.app.domain.model.MealRole
 import com.nutriforma.app.domain.model.MealSlot
 import com.nutriforma.app.domain.model.MealType
 import com.nutriforma.app.domain.model.PlannedMeal
+import com.nutriforma.app.domain.model.PortionUnit
 import com.nutriforma.app.domain.model.RuleId
 import com.nutriforma.app.domain.model.SportLevel
 import com.nutriforma.app.domain.model.TurnoLungoDay
@@ -110,13 +111,14 @@ class WeeklyPlanGeneratorTest {
         assertEquals(MealType.COLAZIONE_DOLCE, meals.meal(2, MealSlot.COLAZIONE).type)
         assertEquals(MealType.COLAZIONE_DOLCE, meals.meal(6, MealSlot.COLAZIONE).type)
         assertEquals(MealType.PRANZO_LIBERO, meals.meal(5, MealSlot.PRANZO).type)
-        assertEquals(
-            listOf(
-                MealType.CENA_PRIMO_VERDURE, MealType.CENA_SECONDO, MealType.CENA_PRIMO_PROTEICO, MealType.CENA_MINESTRONE,
-                MealType.CENA_PRIMO_VERDURE, MealType.CENA_PRIMO_PROTEICO, MealType.CENA_SECONDO,
-            ),
-            (0..6).map { meals.meal(it, MealSlot.CENA).type },
-        )
+        // "Pasta con proteine o carne": primo con condimento proteico oppure piatto completo (stesso limite).
+        val proteico = setOf(MealType.CENA_PRIMO_PROTEICO, MealType.CENA_PIATTO_UNICO)
+        val cene = (0..6).map { meals.meal(it, MealSlot.CENA).type }
+        assertEquals(MealType.CENA_PRIMO_VERDURE, cene[0]); assertEquals(MealType.CENA_SECONDO, cene[1])
+        assertEquals(MealType.CENA_MINESTRONE, cene[3]); assertEquals(MealType.CENA_PRIMO_VERDURE, cene[4])
+        assertEquals(MealType.CENA_SECONDO, cene[6])
+        assertTrue(cene[2] in proteico && cene[5] in proteico)
+        assertEquals(MealType.CENA_PRIMO_PROTEICO, cene[2]) // la prima volta è sempre il condimento di pesce
     }
 
     @Test
@@ -200,6 +202,143 @@ class WeeklyPlanGeneratorTest {
             assertValidWeek(result.meals, profile, noWarnings = true, label = "seed=$seed")
             assertWeeklyTargets(result.meals, cheat, "seed=$seed")
         }
+    }
+
+    // ---- Spremuta d'arancia nel gruppo automatico ----------------------------------------------------------------
+
+    private val juiceId = "spremuta_arancia"
+
+    private fun juiceComponents(meals: List<PlannedMeal>) =
+        meals.flatMap { m -> m.components.filter { it.foodId == juiceId }.map { m to it } }
+
+    private fun assertJuiceDailyCap(meals: List<PlannedMeal>, label: String) {
+        meals.groupBy { it.dayIndex }.forEach { (day, dayMeals) ->
+            val count = dayMeals.sumOf { m -> m.components.count { it.foodId == juiceId } }
+            assertTrue("$label: spremuta $count volte il giorno $day", count <= 1)
+        }
+    }
+
+    @Test
+    fun spremutaIsGeneratedAutomaticallyAtBreakfastAndAsAfternoonSnack() {
+        var atBreakfast = 0
+        var atSnack = 0
+        var weeksWithJuice = 0
+        for (seed in 1L..200L) {
+            val meals = generate(seed).meals
+            val juice = juiceComponents(meals)
+            if (juice.isNotEmpty()) weeksWithJuice++
+            juice.forEach { (meal, component) ->
+                when (component.role) {
+                    MealRole.COLAZIONE_BEVANDA -> {
+                        assertEquals(MealType.COLAZIONE_STANDARD, meal.type)
+                        atBreakfast++
+                    }
+                    MealRole.SPUNTINO_FRUTTA -> {
+                        assertEquals(MealType.SPUNTINO_POMERIGGIO, meal.type)
+                        atSnack++
+                    }
+                    else -> throw AssertionError("spremuta in un ruolo inatteso: ${component.role}")
+                }
+                assertEquals(PortionUnit.MILLILITRI, component.unit)
+            }
+            // Mai in ogni pasto: al massimo una a colazione e una nello spuntino per settimana.
+            assertTrue("seed=$seed: spremuta ${juice.size} volte", juice.size <= 2)
+        }
+        assertTrue("spremuta a colazione mai generata ($atBreakfast)", atBreakfast > 0)
+        assertTrue("spremuta nello spuntino mai generata ($atSnack)", atSnack > 0)
+        // Frequenza naturale: compare quasi ogni settimana ma resta un'eccezione tra le colazioni e gli spuntini
+        // del pomeriggio (14 posti a settimana): meno di 1 posto su 6.
+        assertTrue("settimane con spremuta: $weeksWithJuice/200", weeksWithJuice >= 100)
+        val share = (atBreakfast + atSnack) / (200.0 * 14)
+        assertTrue("spremuta in troppi pasti: $share", share < 1.0 / 6)
+    }
+
+    @Test
+    fun spremutaNeverExceedsOnePerDayAcrossSeedsGoalsAndSportLevels() {
+        var juiceDays = 0
+        for (seed in 1L..200L) {
+            for (goal in Goal.entries) for (sport in SportLevel.entries) {
+                val cheat = 1 + (seed % 2).toInt()
+                val profile = UserProfile(goal = goal, sportLevel = sport, cheatMealsPerWeek = cheat)
+                val label = "seed=$seed $goal $sport"
+                val meals = generate(seed, profile).meals
+                assertJuiceDailyCap(meals, label)
+                juiceDays += meals.filter { m -> m.components.any { it.foodId == juiceId } }.map { it.dayIndex }.toSet().size
+                assertEquals(label, 0, countsOf(meals).giorniSpremutaOltreLimite)
+                assertEquals(label, 0, countsOf(meals).giorniBurroArachidiOltreLimite)
+                assertValidWeek(meals, profile, noWarnings = true, label = label)
+                assertWeeklyTargets(meals, cheat, label)
+            }
+        }
+        assertTrue("la spremuta deve comparire anche con obiettivi e sport diversi", juiceDays > 0)
+    }
+
+    @Test
+    fun spremutaIsNeverPlannedWhenDisliked() {
+        val profile = UserProfile(dislikedFoodIds = setOf(juiceId))
+        for (seed in 1L..200L) {
+            val result = generate(seed, profile)
+            assertTrue("seed=$seed", juiceComponents(result.meals).isEmpty())
+            assertValidWeek(result.meals, profile, noWarnings = true, label = "senza spremuta seed=$seed")
+        }
+    }
+
+    @Test
+    fun spremutaDoesNotEnterTurnoLungoOrBarrettaSnacks() {
+        for (seed in 1L..100L) {
+            val meals = generate(seed, UserProfile(), turno).meals
+            assertJuiceDailyCap(meals, "turno seed=$seed")
+            juiceComponents(meals).forEach { (meal, _) ->
+                assertTrue("seed=$seed: spremuta in ${meal.type}", meal.type != MealType.SPUNTINO_TURNO_LUNGO)
+                assertTrue(meal.type != MealType.BARRETTA_TURNO_LUNGO)
+            }
+        }
+    }
+
+    @Test
+    fun regeneratedSnackNeverRepeatsTheJuiceOfTheSameDay() {
+        val profile = UserProfile()
+        var checked = 0
+        for (seed in 1L..200L) {
+            val week = generate(seed).meals
+            // Giorni con la spremuta già a colazione.
+            val days = week.filter { m -> m.type == MealType.COLAZIONE_STANDARD && m.components.any { it.foodId == juiceId } }
+                .map { it.dayIndex }
+            for (day in days) {
+                val snack = week.meal(day, MealSlot.META_POMERIGGIO)
+                repeat(10) { r ->
+                    val rebuilt = generator.generateMeal(
+                        snack.type, day, week, profile, TestFoods.all, Random(seed * 31 + r), snack.slot,
+                    ).meal
+                    assertTrue("seed=$seed giorno $day", rebuilt.components.none { it.foodId == juiceId })
+                    checked++
+                }
+            }
+        }
+        assertTrue("nessun caso verificato", checked > 0)
+    }
+
+    @Test
+    fun regeneratedBreakfastNeverRepeatsTheJuiceOfTheSameDay() {
+        val profile = UserProfile()
+        var checked = 0
+        for (seed in 1L..200L) {
+            val week = generate(seed).meals
+            val days = week.filter { m -> m.type == MealType.SPUNTINO_POMERIGGIO && m.components.any { it.foodId == juiceId } }
+                .map { it.dayIndex }
+            for (day in days) {
+                val breakfast = week.meal(day, MealSlot.COLAZIONE)
+                if (breakfast.type != MealType.COLAZIONE_STANDARD) continue
+                repeat(10) { r ->
+                    val rebuilt = generator.generateMeal(
+                        breakfast.type, day, week, profile, TestFoods.all, Random(seed * 17 + r), breakfast.slot,
+                    ).meal
+                    assertTrue("seed=$seed giorno $day", rebuilt.components.none { it.foodId == juiceId })
+                    checked++
+                }
+            }
+        }
+        assertTrue("nessun caso verificato", checked > 0)
     }
 
     // ---- Determinism and variety ---------------------------------------------------------------------------------
@@ -313,9 +452,9 @@ class WeeklyPlanGeneratorTest {
     fun oneDislikedDessertAlternatesWithTheOther() {
         val profile = UserProfile(dislikedFoodIds = setOf("torta_casalinga"))
         val meals = generate(5, profile).meals
-        listOf(2, 6).forEach { day ->
-            assertEquals("brioche", meals.meal(day, MealSlot.COLAZIONE).component(MealRole.COLAZIONE_DOLCE)!!.foodId)
-        }
+        val dolci = listOf(2, 6).map { day -> meals.meal(day, MealSlot.COLAZIONE).component(MealRole.COLAZIONE_DOLCE)!!.foodId }
+        assertTrue("dolci inattesi: $dolci", dolci.all { it == "brioche" || it == "biscotti" })
+        assertEquals("i due dolci sono diversi", 2, dolci.toSet().size)
         assertEquals(2, countsOf(meals).colazioniDolci)
     }
 

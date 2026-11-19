@@ -16,6 +16,7 @@ import com.nutriforma.app.domain.model.TurnoLungoOption
 import com.nutriforma.app.domain.model.UserProfile
 import com.nutriforma.app.domain.model.WarningCode
 import com.nutriforma.app.domain.nutrition.PortionCalculator
+import com.nutriforma.app.domain.rules.DailyFoodCaps
 import com.nutriforma.app.domain.rules.DietRuleEngine
 import com.nutriforma.app.domain.rules.DietRules
 import com.nutriforma.app.domain.rules.MealStructure
@@ -55,7 +56,7 @@ class WeeklyPlanGenerator(
     // ---- Public API -----------------------------------------------------------------------------------------
 
     fun generateWeek(input: GenerationInput): GenerationResult {
-        val session = Session(input.profile, input.foods, Random(input.seed))
+        val session = Session(input.profile, input.foods, Random(input.seed), allowPiattoUnico = true)
         session.assignWeekTypes(input.turnoLungoDays)
         session.runAllSteps()
         val meals = session.toMeals()
@@ -122,13 +123,19 @@ class WeeklyPlanGenerator(
 
     // ---- Session --------------------------------------------------------------------------------------------
 
-    private class Draft(val dayIndex: Int, val slot: MealSlot, val type: MealType) {
+    private class Draft(val dayIndex: Int, val slot: MealSlot, var type: MealType) {
         val components = LinkedHashMap<MealRole, PlannedComponent>()
         var secondoTemplate: FoodCategory? = null
         var cached: PlannedMeal? = null
     }
 
-    private inner class Session(val profile: UserProfile, foods: List<FoodItem>, val random: Random) {
+    private inner class Session(
+        val profile: UserProfile,
+        foods: List<FoodItem>,
+        val random: Random,
+        /** I piatti completi si scelgono solo quando si genera l'intera settimana. */
+        val allowPiattoUnico: Boolean = false,
+    ) {
         val foodsById: Map<String, FoodItem> = foods.associateBy { it.id }
         val available: List<FoodItem> = foods.filter { it.id !in profile.dislikedFoodIds }
         val picker = FoodPicker(random)
@@ -230,8 +237,20 @@ class WeeklyPlanGenerator(
 
         // ---- Availability and caps ----
 
-        private fun candidates(role: MealRole, category: FoodCategory): List<FoodItem> =
-            available.filter { role in it.roles && it.category == category && PortionTable.hasRow(role, it) }
+        private fun candidates(role: MealRole, category: FoodCategory, draft: Draft? = null): List<FoodItem> =
+            available.filter {
+                role in it.roles && it.category == category && PortionTable.hasRow(role, it) &&
+                    (draft == null || withinDailyCap(draft, it))
+            }
+
+        /** Limite giornaliero (burro di arachidi, spremuta): [food] non può comparire due volte nello stesso giorno. */
+        private fun withinDailyCap(draft: Draft, food: FoodItem): Boolean {
+            val max = DailyFoodCaps.maxPerDay[food.id] ?: return true
+            val used = drafts.sumOf { d ->
+                if (d.dayIndex == draft.dayIndex) d.components.values.count { it.foodId == food.id } else 0
+            }
+            return used < max
+        }
 
         private fun componentFor(role: MealRole, food: FoodItem, optional: Boolean = false): PlannedComponent {
             val p = portionCalculator.portionFor(role, food, profile)
@@ -253,7 +272,7 @@ class WeeklyPlanGenerator(
         }
 
         private fun isAvailable(draft: Draft, role: MealRole, category: FoodCategory): Boolean {
-            val first = candidates(role, category).firstOrNull() ?: return false
+            val first = candidates(role, category, draft).firstOrNull() ?: return false
             return capsAllow(draft, componentFor(role, first))
         }
 
@@ -299,10 +318,19 @@ class WeeklyPlanGenerator(
         /** Resolves the category and picks the food with [FoodPicker]; `false` (+ warning) when nothing fits. */
         private fun place(
             draft: Draft, role: MealRole, ctx: ChainContext, template: FoodCategory, avoidFoodId: String? = null,
+            extraFoodIds: Set<String> = emptySet(),
         ): FoodCategory? {
             val category = resolveCategory(draft, role, ctx, template)
             if (category == null) { noFood(draft, role); return null }
-            val food = picker.pick(role, candidates(role, category), draft.dayIndex, avoidFoodId) ?: run {
+            var pool = candidates(role, category, draft)
+            if (category == template && extraFoodIds.isNotEmpty()) {
+                // Alimenti di un'altra categoria ammessi nello stesso gruppo (stessi filtri di esclusioni e limiti).
+                pool = pool + available.filter {
+                    it.id in extraFoodIds && it !in pool && role in it.roles && PortionTable.hasRow(role, it) &&
+                        withinDailyCap(draft, it)
+                }
+            }
+            val food = picker.pick(role, pool, draft.dayIndex, avoidFoodId) ?: run {
                 noFood(draft, role); return null
             }
             add(draft, role, food)
@@ -310,7 +338,9 @@ class WeeklyPlanGenerator(
         }
 
         private fun placeFixed(draft: Draft, role: MealRole, foodId: String, warnIfMissing: Boolean = true) {
-            val food = available.firstOrNull { it.id == foodId && role in it.roles && PortionTable.hasRow(role, it) }
+            val food = available.firstOrNull {
+                it.id == foodId && role in it.roles && PortionTable.hasRow(role, it) && withinDailyCap(draft, it)
+            }
             if (food == null) { if (warnIfMissing) noFood(draft, role); return }
             add(draft, role, food)
         }
@@ -318,8 +348,11 @@ class WeeklyPlanGenerator(
         /** First available id of [orderedIds] for [role]; else any available food of the role. */
         private fun placePreferred(draft: Draft, role: MealRole, orderedIds: List<String>, warnIfMissing: Boolean) {
             val food = orderedIds.firstNotNullOfOrNull { id ->
-                available.firstOrNull { it.id == id && role in it.roles && PortionTable.hasRow(role, it) }
-            } ?: available.filter { role in it.roles && PortionTable.hasRow(role, it) }.minByOrNull { it.id }
+                available.firstOrNull {
+                    it.id == id && role in it.roles && PortionTable.hasRow(role, it) && withinDailyCap(draft, it)
+                }
+            } ?: available.filter { role in it.roles && PortionTable.hasRow(role, it) && withinDailyCap(draft, it) }
+                .minByOrNull { it.id }
             if (food == null) { if (warnIfMissing) noFood(draft, role); return }
             add(draft, role, food)
         }
@@ -352,14 +385,24 @@ class WeeklyPlanGenerator(
                 d.secondoTemplate = template
                 place(d, CENA_SECONDO, ChainContext.CENA_SECONDO, template)
             } },
-            // 3. Cena primo condimento proteico (1st occurrence PESCE, then one of pesto/ragù/tonno at random)
-            { d -> if (d.type == MealType.CENA_PRIMO_PROTEICO) {
-                val first = drafts.none { it.type == MealType.CENA_PRIMO_PROTEICO && it.dayIndex < d.dayIndex }
-                val template = if (first) PESCE
-                else randomAvailable(d, CENA_PRIMO_CONDIMENTO_PROTEICO, CategoryTemplates.PRIMO_PROTEICO_SET)
-                    ?: CategoryTemplates.PRIMO_PROTEICO_SET.first()
-                place(d, CENA_PRIMO_CONDIMENTO_PROTEICO, ChainContext.PRIMO_PROTEICO, template)
-            } },
+            // 3. Cena "pasta con proteine o carne": 1st occurrence PESCE; then pesto/ragù/tonno or a complete dish at random
+            { d ->
+                when (d.type) {
+                    MealType.CENA_PRIMO_PROTEICO -> placePrimoProteico(d)
+                    MealType.CENA_PIATTO_UNICO ->
+                        if (CENA_PIATTO_UNICO !in d.components) {
+                            if (isAvailable(d, CENA_PIATTO_UNICO, PIATTO_UNICO)) {
+                                place(d, CENA_PIATTO_UNICO, ChainContext.GENERIC, PIATTO_UNICO)
+                            } else {
+                                // Tutti i piatti completi esclusi: si torna al primo con condimento proteico (stesso conteggio).
+                                d.type = MealType.CENA_PRIMO_PROTEICO
+                                invalidate()
+                                placePrimoProteico(d)
+                            }
+                        }
+                    else -> Unit
+                }
+            },
             // 4. Minestrone aggiunta
             { d -> if (d.type == MealType.CENA_MINESTRONE) {
                 val template = randomAvailable(d, CENA_MINESTRONE_AGGIUNTA, CategoryTemplates.MINESTRONE_AGGIUNTA_SET) ?: LATTICINI
@@ -413,12 +456,12 @@ class WeeklyPlanGenerator(
             // 14. Colazione bevanda / dolce / dolce bevanda
             { d ->
                 if (d.type == MealType.COLAZIONE_STANDARD) {
-                    placePreferred(d, COLAZIONE_BEVANDA, listOf("caffe_espresso", "caffe_ginseng"), warnIfMissing = false)
+                    placeBreakfastBeverage(d)
                 }
                 if (d.type == MealType.COLAZIONE_DOLCE) {
                     val k = rank(d, setOf(MealType.COLAZIONE_DOLCE)) % 2
-                    placePreferred(d, COLAZIONE_DOLCE,
-                        if (k == 0) listOf("torta_casalinga", "brioche") else listOf("brioche", "torta_casalinga"), true)
+                    // Torta, brioche o biscotti: a rotazione (FoodPicker), mai lo stesso dolce due volte di fila.
+                    place(d, COLAZIONE_DOLCE, ChainContext.GENERIC, DOLCE_COLAZIONE)
                     placePreferred(d, COLAZIONE_DOLCE_BEVANDA,
                         if (k == 0) listOf("cappuccino", "caffe_espresso") else listOf("caffe_espresso", "cappuccino"), true)
                 }
@@ -427,7 +470,8 @@ class WeeklyPlanGenerator(
             { d -> when (d.type) {
                 MealType.SPUNTINO_MATTINA -> placeSecca(d)
                 MealType.SPUNTINO_POMERIGGIO -> {
-                    place(d, SPUNTINO_FRUTTA, ChainContext.GENERIC, FRUTTA_FRESCA)
+                    // La spremuta entra nel gruppo della frutta (peso di un frutto, quindi circa una volta a settimana).
+                    place(d, SPUNTINO_FRUTTA, ChainContext.GENERIC, FRUTTA_FRESCA, extraFoodIds = setOf(DailyFoodCaps.SPREMUTA_ARANCIA))
                     place(d, SPUNTINO_ABBINAMENTO, ChainContext.ABBINAMENTO, CategoryTemplates.abbinamentoFor(d.dayIndex))
                 }
                 MealType.SPUNTINO_TURNO_LUNGO -> {
@@ -440,10 +484,58 @@ class WeeklyPlanGenerator(
             // 16a. Olio pranzo
             { d -> if (d.type == MealType.PRANZO_STANDARD) placeFixed(d, PRANZO_CONDIMENTO, "olio_evo") },
             // 16b. Olio cena
-            { d -> if (d.slot == MealSlot.CENA) placeFixed(d, CENA_CONDIMENTO, "olio_evo") },
+            { d -> if (d.slot == MealSlot.CENA && MealStructure.specFor(d.type).any { it.role == CENA_CONDIMENTO }) {
+                placeFixed(d, CENA_CONDIMENTO, "olio_evo")
+            } },
             // 17. Pasto libero
             { d -> if (d.type == MealType.PRANZO_LIBERO) placeFixed(d, MealRole.PRANZO_LIBERO, "pasto_libero") },
         )
+
+        /**
+         * Bevanda della colazione classica: caffè, oppure (1 volta su [CategoryTemplates.JUICE_BREAKFAST_ODDS], al massimo
+         * una colazione a settimana) la spremuta d'arancia, se non esclusa e se non è già nella giornata.
+         */
+        private fun placeBreakfastBeverage(d: Draft) {
+            val juice = available.firstOrNull {
+                it.id == DailyFoodCaps.SPREMUTA_ARANCIA && COLAZIONE_BEVANDA in it.roles &&
+                    PortionTable.hasRow(COLAZIONE_BEVANDA, it) && withinDailyCap(d, it)
+            }
+            val juiceAlreadyThisWeek = drafts.any { other ->
+                other !== d && other.type == MealType.COLAZIONE_STANDARD &&
+                    other.components[COLAZIONE_BEVANDA]?.foodId == DailyFoodCaps.SPREMUTA_ARANCIA
+            }
+            if (juice != null && !juiceAlreadyThisWeek && random.nextInt(CategoryTemplates.JUICE_BREAKFAST_ODDS) == 0) {
+                add(d, COLAZIONE_BEVANDA, juice)
+            } else {
+                placePreferred(d, COLAZIONE_BEVANDA, listOf("caffe_espresso", "caffe_ginseng"), warnIfMissing = false)
+            }
+        }
+
+        /**
+         * "Pasta con proteine o carne": la prima volta PESCE, poi a caso tra pesto, ragù, tonno e (solo nella generazione
+         * dell'intera settimana) un piatto completo, che conta nello stesso limite di 2 a settimana.
+         */
+        private fun placePrimoProteico(d: Draft) {
+            val first = drafts.none {
+                (it.type == MealType.CENA_PRIMO_PROTEICO || it.type == MealType.CENA_PIATTO_UNICO) && it.dayIndex < d.dayIndex
+            }
+            if (first) {
+                place(d, CENA_PRIMO_CONDIMENTO_PROTEICO, ChainContext.PRIMO_PROTEICO, PESCE)
+                return
+            }
+            val sauces = CategoryTemplates.PRIMO_PROTEICO_SET.filter { isAvailable(d, CENA_PRIMO_CONDIMENTO_PROTEICO, it) }
+            val dishAvailable = allowPiattoUnico && isAvailable(d, CENA_PIATTO_UNICO, PIATTO_UNICO)
+            val choices = sauces.size + if (dishAvailable) 1 else 0
+            val index = if (choices == 0) -1 else random.nextInt(choices)
+            if (dishAvailable && index == sauces.size) {
+                d.type = MealType.CENA_PIATTO_UNICO
+                invalidate()
+                place(d, CENA_PIATTO_UNICO, ChainContext.GENERIC, PIATTO_UNICO)
+            } else {
+                val template = if (index >= 0) sauces[index] else CategoryTemplates.PRIMO_PROTEICO_SET.first()
+                place(d, CENA_PRIMO_CONDIMENTO_PROTEICO, ChainContext.PRIMO_PROTEICO, template)
+            }
+        }
 
         /** Chain over the week: first FRUTTA_SECCA, then the opposite of the previous placed SPUNTINO_SECCA. */
         private fun placeSecca(d: Draft) {

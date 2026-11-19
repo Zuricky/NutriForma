@@ -30,7 +30,9 @@ class PortionTableTest {
         PortionTable.rows.forEach { row ->
             assertTrue("$row: min > max", row.min <= row.max)
             assertTrue("$row: min <= 0", row.min > 0.0)
-            if (row.unit == PortionUnit.PORZIONE) assertEquals(MealRole.PRANZO_LIBERO, row.role)
+            if (row.unit == PortionUnit.PORZIONE) {
+                assertTrue("$row", row.role == MealRole.PRANZO_LIBERO || row.role == MealRole.CENA_PIATTO_UNICO)
+            }
         }
         assertEquals("nessuna riga duplicata", PortionTable.rows.size,
             PortionTable.rows.map { Triple(it.role, it.category, it.foodId) }.toSet().size)
@@ -131,5 +133,10 @@ class PortionTableTest {
             assertEquals(MealRole.CENA_VERDURE, roles.first())
             assertEquals(MealRole.CENA_CONDIMENTO, roles.last())
         }
+        // Il piatto completo ha le verdure e il piatto: niente secondo, niente condimento a parte.
+        assertEquals(
+            listOf(MealRole.CENA_VERDURE, MealRole.CENA_PIATTO_UNICO),
+            MealStructure.specFor(MealType.CENA_PIATTO_UNICO).map { it.role },
+        )
     }
 }

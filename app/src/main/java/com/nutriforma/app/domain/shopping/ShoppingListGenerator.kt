@@ -9,7 +9,7 @@ import kotlin.math.roundToInt
 
 /**
  * Reparti della lista della spesa mostrati all'utente.
- * DECISION: i 12 [SupermarketCategory] del catalogo sono raggruppati nei 7 reparti.
+ * DECISION: i 13 [SupermarketCategory] del catalogo sono raggruppati negli 8 reparti.
  */
 enum class ShoppingGroup(val labelIt: String, val order: Int) {
     ORTOFRUTTA("Ortofrutta", 0),
@@ -19,6 +19,7 @@ enum class ShoppingGroup(val labelIt: String, val order: Int) {
     CEREALI_PANE("Cereali e Pane", 4),
     DISPENSA("Dispensa e Condimenti", 5),
     FRUTTA_SECCA_EXTRA("Frutta Secca e Extra", 6),
+    GASTRONOMIA("Gastronomia e Piatti Pronti", 7),
     ;
 
     companion object {
@@ -34,12 +35,16 @@ enum class ShoppingGroup(val labelIt: String, val order: Int) {
                 SupermarketCategory.CONSERVE_SUGHI, SupermarketCategory.SURGELATI,
                 SupermarketCategory.DISPENSA, SupermarketCategory.BEVANDE -> DISPENSA
                 SupermarketCategory.FRUTTA_SECCA_SNACK -> FRUTTA_SECCA_EXTRA
+                SupermarketCategory.GASTRONOMIA -> GASTRONOMIA
             }
         }
     }
 }
 
-/** Una voce aggregata della spesa. [unit] è sempre [PortionUnit.GRAMMI] o [PortionUnit.PEZZI]. */
+/**
+ * Una voce aggregata della spesa. [unit] è [PortionUnit.GRAMMI], [PortionUnit.PEZZI], [PortionUnit.MILLILITRI]
+ * (bevande) o [PortionUnit.PORZIONE] (piatti completi, mostrati solo con il nome del piatto).
+ */
 data class ShoppingItem(
     val foodId: String,
     val name: String,
@@ -47,12 +52,16 @@ data class ShoppingItem(
     val unit: PortionUnit,
     val group: ShoppingGroup,
     val isChecked: Boolean,
+    /** Categoria dell'alimento (per l'icona nella lista). */
+    val category: FoodCategory? = null,
 ) {
     /** Riga completa in italiano, es. "6 uova", "360 g petto di pollo". */
     val title: String
         get() = when {
             foodId == EGG_ID -> if (quantity == 1) "1 uovo" else "$quantity uova"
             unit == PortionUnit.PEZZI -> "$quantity pz ${name.lowercaseFirst()}"
+            unit == PortionUnit.MILLILITRI -> "$quantity ml ${name.lowercaseFirst()}"
+            unit == PortionUnit.PORZIONE -> "$name — $quantity ${if (quantity == 1) PortionUnit.PORZIONE.singularIt else PortionUnit.PORZIONE.pluralIt}"
             else -> "$quantity g ${name.lowercaseFirst()}"
         }
 
@@ -88,22 +97,24 @@ class ShoppingListGenerator {
             ShoppingGroup.of(food) ?: continue // es. "pasto libero": non si compra
             val t = totals.getOrPut(food.id) { Totals() }
             t.grams += component.grams
-            if (component.unit == PortionUnit.PEZZI) t.pieces += component.quantity else t.onlyPieces = false
+            t.quantities[component.unit] = (t.quantities[component.unit] ?: 0.0) + component.quantity
         }
         return totals.mapNotNull { (foodId, t) ->
             val food = foodsById.getValue(foodId)
             val group = ShoppingGroup.of(food) ?: return@mapNotNull null
-            // Solo pezzi (uova, frutta…) → "6 uova"; qualsiasi altra unità → somma dei grammi.
-            val usePieces = t.onlyPieces && t.pieces > 0
-            val quantity = (if (usePieces) t.pieces else t.grams).roundToInt()
+            // Un'unica unità "naturale" (pezzi, ml, porzioni) → quantità in quell'unità; altrimenti somma dei grammi.
+            val single = t.quantities.keys.singleOrNull()
+            val unit = if (single in NATURAL_UNITS) single!! else PortionUnit.GRAMMI
+            val quantity = (if (unit == PortionUnit.GRAMMI) t.grams else t.quantities.getValue(unit)).roundToInt()
             if (quantity <= 0) return@mapNotNull null
             ShoppingItem(
                 foodId = foodId,
                 name = if (foodId == "uovo") "Uova" else food.nameIt,
                 quantity = quantity,
-                unit = if (usePieces) PortionUnit.PEZZI else PortionUnit.GRAMMI,
+                unit = unit,
                 group = group,
                 isChecked = foodId in checkedFoodIds,
+                category = food.category,
             )
         }.sortedWith(compareBy({ it.group.order }, { it.name.lowercase() }))
     }
@@ -121,8 +132,11 @@ class ShoppingListGenerator {
 
     private class Totals {
         var grams = 0.0
-        var pieces = 0.0
-        var onlyPieces = true
+        val quantities = LinkedHashMap<PortionUnit, Double>()
+    }
+
+    private companion object {
+        val NATURAL_UNITS = setOf(PortionUnit.PEZZI, PortionUnit.MILLILITRI, PortionUnit.PORZIONE)
     }
 }
 

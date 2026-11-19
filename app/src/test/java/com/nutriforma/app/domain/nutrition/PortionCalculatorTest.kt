@@ -77,7 +77,7 @@ class PortionCalculatorTest {
         val p = calc.portionFor(MealRole.PRANZO_LIBERO, food("pasto_libero"), Goal.ENERGIA, SportLevel.MOLTO_INTENSO)
         assertEquals(PortionUnit.PORZIONE, p.unit)
         assertEquals(0.0, p.grams, 0.0)
-        assertEquals("es. pasticcio o sushi", p.hintIt)
+        assertEquals("es. pizza o sushi", p.hintIt)
     }
 
     @Test

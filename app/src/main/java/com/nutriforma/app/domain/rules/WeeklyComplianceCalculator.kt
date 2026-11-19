@@ -14,7 +14,7 @@ import com.nutriforma.app.domain.nutrition.NutritionCalculator
 data class WeeklyComplianceSnapshot(
     val counts: WeeklyCounts,
     val report: ComplianceReport,
-    /** Carne totale, Carne rossa, Pesce, Uova totale, Tonno, Affettato, Patate, Colazioni dolci, Pasti liberi. */
+    /** Carne totale, Carne rossa, Pesce, Uova totale, Tonno, Affettato, Patate, Pasta con verdure, Pasta con proteine, Colazioni dolci, Pasti liberi. */
     val liveCounters: List<RuleCheck>,
     /** Daily totals Lunedì..Domenica. */
     val dailyNutrition: List<DayNutrition>,
@@ -48,7 +48,8 @@ class WeeklyComplianceCalculator(
     private companion object {
         val LIVE_ORDER = listOf(
             RuleId.CARNE, RuleId.CARNE_ROSSA, RuleId.PESCE, RuleId.UOVA_TOTALE, RuleId.TONNO,
-            RuleId.AFFETTATO, RuleId.PATATE, RuleId.COLAZIONE_DOLCE, RuleId.PASTO_LIBERO,
+            RuleId.AFFETTATO, RuleId.PATATE, RuleId.CENA_PRIMO_VERDURE, RuleId.CENA_PRIMO_PROTEICO,
+            RuleId.COLAZIONE_DOLCE, RuleId.PASTO_LIBERO,
         )
     }
 }
