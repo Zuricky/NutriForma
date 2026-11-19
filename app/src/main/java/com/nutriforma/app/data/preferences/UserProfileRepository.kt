@@ -22,7 +22,11 @@ import java.io.IOException
  * Single-profile store on DataStore Preferences (file `user_profile`).
  * All keys are written inside one `dataStore.edit`, so readers never observe a half-updated profile.
  */
-class UserProfileRepository(private val dataStore: DataStore<Preferences>) {
+class UserProfileRepository(
+    private val dataStore: DataStore<Preferences>,
+    /** Chiamata dopo ogni modifica fatta dall'utente (es. backup automatico); non scatta con [updateSilently]. */
+    private val onChanged: () -> Unit = {},
+) {
 
     val profile: Flow<UserProfile> = dataStore.data
         .catch { error ->
@@ -35,6 +39,15 @@ class UserProfileRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun current(): UserProfile = profile.first()
 
     suspend fun update(transform: (UserProfile) -> UserProfile) {
+        updateSilently(transform)
+        onChanged()
+    }
+
+    /**
+     * Come [update] ma senza avvisare chi ascolta le modifiche: serve per i dati di servizio del dispositivo
+     * (data dell'ultimo backup, versione del catalogo, ripristino) che non devono rilanciare il backup automatico.
+     */
+    suspend fun updateSilently(transform: (UserProfile) -> UserProfile) {
         dataStore.edit { prefs ->
             val updated = transform(prefs.toProfile())
             prefs.writeAll(UserProfileMapper.toMap(updated))

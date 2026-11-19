@@ -5,6 +5,7 @@ import com.nutriforma.app.data.local.entity.PlannedMealEntity
 import com.nutriforma.app.data.local.entity.ShoppingCheckEntity
 import com.nutriforma.app.data.local.entity.WaterLogEntity
 import com.nutriforma.app.data.local.entity.WeeklyPlanEntity
+import com.nutriforma.app.data.repository.ShoppingExtra
 import com.nutriforma.app.domain.model.Goal
 import com.nutriforma.app.domain.model.MealSlot
 import com.nutriforma.app.domain.model.MealType
@@ -17,6 +18,9 @@ import com.nutriforma.app.domain.model.TurnoLungoOption
 import com.nutriforma.app.domain.model.UserProfile
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.intOrNull
 
 /** Schema del file di backup. */
 const val BACKUP_SCHEMA_VERSION = 1
@@ -31,7 +35,17 @@ data class BackupFile(
     val bodyMeasurements: List<BackupBodyMeasurement> = emptyList(),
     val waterLogs: List<BackupWaterLog> = emptyList(),
     val shoppingChecks: List<BackupShoppingCheck> = emptyList(),
+    /**
+     * Pasti segnati come completati (id dei pasti dei piani del file). Aggiunto dopo la prima versione senza cambiare
+     * [schemaVersion]: i backup più vecchi non lo contengono e si leggono come "nessun pasto completato".
+     */
+    val completedMealIds: List<Long> = emptyList(),
+    /** Voci extra scritte a mano nella lista della spesa; assenti nei backup più vecchi (= nessuna). */
+    val shoppingExtras: List<BackupShoppingExtra> = emptyList(),
 )
+
+@Serializable
+data class BackupShoppingExtra(val id: String, val name: String, val isChecked: Boolean = false)
 
 @Serializable
 data class BackupReminders(
@@ -121,16 +135,22 @@ object BackupCodec {
 
     /** Legge e valida un backup; lancia [BackupException] con messaggio italiano se non è utilizzabile. */
     fun decode(text: String): BackupFile {
-        val file = try {
+        val notABackup = BackupException("Il file selezionato non è un backup di NutriForma valido.")
+        // Senza "schemaVersion" qualunque JSON (anche `{}`) passerebbe come backup vuoto e cancellerebbe i dati.
+        val root = try {
+            json.parseToJsonElement(text) as? JsonObject
+        } catch (e: Exception) {
+            null
+        }
+        val version = (root?.get("schemaVersion") as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull ?: throw notABackup
+        // La versione si controlla prima del resto: un file più recente può avere una struttura che qui non si legge.
+        if (version > BACKUP_SCHEMA_VERSION) throw BackupException("Backup creato con una versione più recente dell'app.")
+        if (version < 1) throw notABackup
+        return try {
             json.decodeFromString(BackupFile.serializer(), text)
         } catch (e: Exception) {
             throw BackupException("Il file selezionato non è un backup di NutriForma valido.", e)
         }
-        if (file.schemaVersion > BACKUP_SCHEMA_VERSION) {
-            throw BackupException("Backup creato con una versione più recente dell'app.")
-        }
-        if (file.schemaVersion < 1) throw BackupException("Il file selezionato non è un backup di NutriForma valido.")
-        return file
     }
 }
 
@@ -205,6 +225,9 @@ fun BackupBodyMeasurement.toEntity() = BodyMeasurementEntity(dateEpochDay, weigh
 
 fun WaterLogEntity.toBackup() = BackupWaterLog(id, dateEpochDay, timestampMillis, amountMl)
 fun BackupWaterLog.toEntity() = WaterLogEntity(id, dateEpochDay, timestampMillis, amountMl)
+
+fun ShoppingExtra.toBackup() = BackupShoppingExtra(id, name, isChecked)
+fun BackupShoppingExtra.toDomain() = ShoppingExtra(id, name, isChecked)
 
 fun ShoppingCheckEntity.toBackup() = BackupShoppingCheck(planId, foodId, isChecked, updatedAtMillis)
 fun BackupShoppingCheck.toEntity() = ShoppingCheckEntity(planId, foodId, isChecked, updatedAtMillis)

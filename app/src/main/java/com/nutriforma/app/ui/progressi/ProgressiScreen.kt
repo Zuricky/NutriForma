@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.domain.model.BodyMeasurement
 import com.nutriforma.app.domain.tracking.MeasurementMetric
 import com.nutriforma.app.domain.tracking.SeriesPoint
@@ -61,6 +62,7 @@ private val rowDate = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ITALY)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressiScreen(viewModel: ProgressiViewModel, modifier: Modifier = Modifier) {
+    RefreshTodayEffect(viewModel::refreshToday)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) { viewModel.events.collect { snackbarHost.showSnackbar(it) } }

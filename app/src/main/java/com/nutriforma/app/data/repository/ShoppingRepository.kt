@@ -14,6 +14,8 @@ class ShoppingRepository(
     private val checkDao: ShoppingCheckDao,
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
+    /** Chiamata dopo ogni spunta cambiata o azzerata (es. backup automatico). */
+    private val onDataChanged: () -> Unit = {},
 ) {
     fun observeCheckedFoodIds(planId: Long): Flow<Set<String>> =
         checkDao.observeForPlan(planId)
@@ -22,7 +24,11 @@ class ShoppingRepository(
 
     suspend fun setChecked(planId: Long, foodId: String, checked: Boolean) = withContext(ioDispatcher) {
         checkDao.upsert(ShoppingCheckEntity(planId, foodId, checked, clock.millis()))
+        onDataChanged()
     }
 
-    suspend fun clearChecks(planId: Long) = withContext(ioDispatcher) { checkDao.clearForPlan(planId) }
+    suspend fun clearChecks(planId: Long) = withContext(ioDispatcher) {
+        checkDao.clearForPlan(planId)
+        onDataChanged()
+    }
 }

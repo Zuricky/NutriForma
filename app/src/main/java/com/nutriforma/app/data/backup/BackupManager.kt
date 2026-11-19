@@ -5,10 +5,10 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import com.nutriforma.app.data.preferences.UserProfileRepository
-import com.nutriforma.app.notifications.ReminderScheduler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,17 +29,15 @@ class BackupManager(
     private val context: Context,
     private val service: BackupService,
     private val profileRepository: UserProfileRepository,
-    private val reminderScheduler: ReminderScheduler,
     private val scope: CoroutineScope,
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
-) {
+) : BackupGateway {
     // Canale conflated: un segnale inviato prima che il collettore parta non va perso e i segnali ravvicinati si fondono.
     private val trigger = Channel<Unit>(Channel.CONFLATED)
     private val _autoBackupError = MutableStateFlow<String?>(null)
 
-    /** Ultimo errore del backup automatico (es. cartella non più accessibile); `null` se tutto ok. */
-    val autoBackupError: StateFlow<String?> = _autoBackupError
+    override val autoBackupError: StateFlow<String?> = _autoBackupError
 
     @OptIn(FlowPreview::class)
     private fun startAutoBackupLoop() {
@@ -50,12 +48,13 @@ class BackupManager(
         startAutoBackupLoop()
     }
 
-    fun suggestedFileName(): String =
+    override fun suggestedFileName(): String =
         "NutriForma_backup_${LocalDateTime.now(clock).format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmm"))}.json"
 
     // ---- Manuale ---------------------------------------------------------------------------------------------
 
-    suspend fun exportTo(uri: Uri) = withContext(ioDispatcher) {
+    override suspend fun exportTo(target: String) = withContext(ioDispatcher) {
+        val uri = Uri.parse(target)
         val text = BackupCodec.encode(service.buildBackup())
         try {
             val stream = context.contentResolver.openOutputStream(uri, "wt") ?: throw BackupException("Non riesco a scrivere il file.")
@@ -68,8 +67,8 @@ class BackupManager(
         markBackupDone()
     }
 
-    /** Legge e valida il file scelto, senza toccare i dati attuali. */
-    suspend fun readBackup(uri: Uri): BackupFile = withContext(ioDispatcher) {
+    override suspend fun readBackup(source: String): BackupFile = withContext(ioDispatcher) {
+        val uri = Uri.parse(source)
         val text = try {
             context.contentResolver.openInputStream(uri)?.use { String(it.readBytes(), Charsets.UTF_8) }
                 ?: throw BackupException("Non riesco a leggere il file.")
@@ -81,21 +80,28 @@ class BackupManager(
         BackupCodec.decode(text)
     }
 
-    suspend fun restore(file: BackupFile) = withContext(ioDispatcher) {
-        try {
+    /**
+     * Un ripristino iniziato non si interrompe a metà (anche se la schermata viene chiusa): il servizio gestisce da sé
+     * gli errori e rimette l'app in uno stato utilizzabile (settimana corrente e promemoria).
+     */
+    override suspend fun restore(file: BackupFile): RestoreResult = withContext(ioDispatcher + NonCancellable) {
+        val result = try {
             service.restore(file)
         } catch (e: BackupException) {
             throw e
         } catch (e: Exception) {
-            throw BackupException("Ripristino non riuscito: i dati attuali non sono stati modificati.", e)
+            throw BackupException("Ripristino non riuscito. Riprova.", e)
         }
-        runCatching { reminderScheduler.syncWithProfile() }
+        // I dati ripristinati diventano la nuova copia automatica.
+        scheduleAutoBackup()
+        result
     }
 
     // ---- Automatico ------------------------------------------------------------------------------------------
 
     /** Salva il permesso persistente sulla cartella, attiva il backup automatico e scrive subito la prima copia. */
-    suspend fun setAutoBackupFolder(treeUri: Uri) = withContext(ioDispatcher) {
+    override suspend fun setAutoBackupFolder(tree: String) = withContext(ioDispatcher) {
+        val treeUri = Uri.parse(tree)
         try {
             context.contentResolver.takePersistableUriPermission(
                 treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
@@ -103,17 +109,19 @@ class BackupManager(
         } catch (e: SecurityException) {
             throw BackupException("Non posso usare questa cartella: scegline un'altra.", e)
         }
-        profileRepository.update { it.copy(backupFolderUri = treeUri.toString(), autoBackupEnabled = true) }
+        profileRepository.updateSilently { it.copy(backupFolderUri = treeUri.toString(), autoBackupEnabled = true) }
         _autoBackupError.value = null
-        runAutoBackup()
+        if (!runAutoBackup()) {
+            throw BackupException("Cartella scelta, ma non riesco a scrivere il backup: scegline un'altra.")
+        }
     }
 
-    suspend fun setAutoBackupEnabled(enabled: Boolean) {
-        profileRepository.update { it.copy(autoBackupEnabled = enabled && it.backupFolderUri != null) }
+    override suspend fun setAutoBackupEnabled(enabled: Boolean) {
+        profileRepository.updateSilently { it.copy(autoBackupEnabled = enabled && it.backupFolderUri != null) }
         if (enabled) runAutoBackup() else _autoBackupError.value = null
     }
 
-    /** Da chiamare quando cambiano dati rilevanti (settimana generata, misure): scrive dopo una breve pausa. */
+    /** Da chiamare quando cambiano i dati dell'utente (piani, profilo, acqua, spunte…): scrive dopo una breve pausa. */
     fun scheduleAutoBackup() {
         trigger.trySend(Unit)
     }
@@ -160,7 +168,7 @@ class BackupManager(
     }
 
     private suspend fun markBackupDone() {
-        profileRepository.update { it.copy(lastBackupAtMillis = clock.millis()) }
+        profileRepository.updateSilently { it.copy(lastBackupAtMillis = clock.millis()) }
     }
 
     companion object {

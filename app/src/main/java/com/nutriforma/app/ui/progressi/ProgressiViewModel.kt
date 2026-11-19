@@ -11,12 +11,15 @@ import com.nutriforma.app.domain.tracking.MeasurementMetric
 import com.nutriforma.app.domain.tracking.SeriesPoint
 import com.nutriforma.app.domain.tracking.parseMeasurementInput
 import com.nutriforma.app.domain.tracking.seriesOf
+import com.nutriforma.app.ui.TodayState
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -44,30 +47,43 @@ class ProgressiViewModel(
     private val clock: Clock,
 ) : ViewModel() {
 
-    private val today: LocalDate = LocalDate.now(clock)
+    private val todayState = TodayState(clock)
     private val overlay = MutableStateFlow(Overlay())
     private val messages = Channel<String>(Channel.BUFFERED)
 
     /** Messaggi (snackbar) one-off in italiano. */
     val events = messages.receiveAsFlow()
 
-    val uiState: StateFlow<ProgressiUiState> = combine(
-        trackingRepository.observeWaterToday(),
-        trackingRepository.observeMeasurements(),
-        userProfileRepository.profile,
-        overlay,
-    ) { water, measurements, profile, o ->
-        ProgressiUiState(
-            waterMl = water.coerceAtLeast(0),
-            waterGoalMl = profile.waterGoalMl,
-            tip = DailyTips.tipFor(today),
-            series = MeasurementMetric.entries.associateWith { seriesOf(measurements, it) },
-            recent = measurements.sortedByDescending { it.date }.take(RECENT_LIMIT),
-            today = today,
-            dialogOpen = o.dialogOpen,
-            dialogError = o.dialogError,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProgressiUiState(tip = DailyTips.tipFor(today), today = today))
+    /** Da chiamare quando l'app torna in primo piano o passa la mezzanotte: acqua e consiglio ripartono dal nuovo giorno. */
+    fun refreshToday() {
+        todayState.refresh()
+    }
+
+    // observeWaterToday() legge la data dall'orologio quando viene chiamato: a ogni cambio di giorno si ricrea.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val uiState: StateFlow<ProgressiUiState> = todayState.today.flatMapLatest { today ->
+        combine(
+            trackingRepository.observeWaterToday(),
+            trackingRepository.observeMeasurements(),
+            userProfileRepository.profile,
+            overlay,
+        ) { water, measurements, profile, o ->
+            ProgressiUiState(
+                waterMl = water.coerceAtLeast(0),
+                waterGoalMl = profile.waterGoalMl,
+                tip = DailyTips.tipFor(today),
+                series = MeasurementMetric.entries.associateWith { seriesOf(measurements, it) },
+                recent = measurements.sortedByDescending { it.date }.take(RECENT_LIMIT),
+                today = today,
+                dialogOpen = o.dialogOpen,
+                dialogError = o.dialogError,
+            )
+        }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        ProgressiUiState(tip = DailyTips.tipFor(todayState.today.value), today = todayState.today.value),
+    )
 
     // ---- Acqua ---------------------------------------------------------------------------------------------
 

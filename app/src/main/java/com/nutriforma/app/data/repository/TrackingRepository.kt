@@ -20,7 +20,7 @@ class TrackingRepository(
     private val measurementDao: BodyMeasurementDao,
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
-    /** Chiamata dopo ogni misura salvata o eliminata (es. backup automatico). */
+    /** Chiamata dopo ogni misura o registrazione d'acqua salvata o eliminata (es. backup automatico). */
     private val onDataChanged: () -> Unit = {},
 ) {
     private fun today(): LocalDate = LocalDate.now(clock)
@@ -31,6 +31,7 @@ class TrackingRepository(
     suspend fun addWater(amountMl: Int) = withContext(ioDispatcher) {
         require(amountMl in 1..1000) { "Quantità d'acqua non valida" }
         waterDao.insert(WaterLogEntity(dateEpochDay = today().toEpochDay(), timestampMillis = clock.millis(), amountMl = amountMl))
+        onDataChanged()
     }
 
     /**
@@ -44,6 +45,7 @@ class TrackingRepository(
         val removed = minOf(amountMl, waterDao.totalForDay(day))
         if (removed > 0) {
             waterDao.insert(WaterLogEntity(dateEpochDay = day, timestampMillis = clock.millis(), amountMl = -removed))
+            onDataChanged()
         }
         removed
     }

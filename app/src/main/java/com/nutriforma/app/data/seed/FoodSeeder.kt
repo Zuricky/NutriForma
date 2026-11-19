@@ -33,7 +33,7 @@ class FoodSeeder(
 
         val entities = seed.foods.mapIndexed { index, dto -> dto.toDomain().toEntity(sortOrder = index) }
         foodDao.upsertAll(entities)
-        userProfileRepository.update { it.copy(foodSeedVersion = seed.seedVersion) }
+        userProfileRepository.updateSilently { it.copy(foodSeedVersion = seed.seedVersion) }
         log("Seed: ${entities.size} alimenti")
         entities.size
     }

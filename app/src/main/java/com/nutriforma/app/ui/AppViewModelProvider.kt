@@ -54,8 +54,8 @@ object AppViewModelProvider {
                 planRepository = container.planRepository,
                 trackingRepository = container.trackingRepository,
                 energyTargetCalculator = container.energyTargetCalculator,
-                reminderScheduler = container.reminderScheduler,
-                backupManager = container.backupManager,
+                reminderSync = container.reminderScheduler,
+                backup = container.backupManager,
                 clock = container.clock,
             )
         }

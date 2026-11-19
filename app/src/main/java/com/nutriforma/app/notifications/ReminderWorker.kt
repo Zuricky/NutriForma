@@ -14,6 +14,8 @@ import com.nutriforma.app.R
 import com.nutriforma.app.domain.model.MealSlot
 import com.nutriforma.app.domain.model.MealType
 import com.nutriforma.app.domain.model.dayIndex
+import com.nutriforma.app.domain.reminders.ReminderType
+import com.nutriforma.app.domain.tips.DailyTips
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 
@@ -31,6 +33,16 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val content = when (type) {
                 ReminderType.MEAL -> if (reminders.mealRemindersEnabled && slot != null) mealContent(slot) else null
                 ReminderType.WATER -> if (reminders.waterRemindersEnabled) waterContent() else null
+                ReminderType.TIP -> if (reminders.dailyTipEnabled) {
+                    Content(
+                        "Consiglio del giorno",
+                        DailyTips.tipFor(LocalDate.now(container.clock)),
+                        TIP_ID,
+                        NotificationChannels.TIPS,
+                    )
+                } else {
+                    null
+                }
                 ReminderType.WEIGH_IN -> if (reminders.weighInReminderEnabled) {
                     Content(
                         "Misurazioni settimanali",
@@ -108,5 +120,6 @@ class ReminderWorker(context: Context, params: WorkerParameters) : CoroutineWork
         private const val MEAL_ID_BASE = 1000
         private const val WATER_ID = 2000
         private const val WEIGH_IN_ID = 3000
+        private const val TIP_ID = 4000
     }
 }

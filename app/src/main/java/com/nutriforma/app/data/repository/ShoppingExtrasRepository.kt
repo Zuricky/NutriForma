@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -23,12 +24,23 @@ data class ShoppingExtra(val id: String, val name: String, val isChecked: Boolea
  * Extra manuali della spesa.
  * DECISION: salvati in un DataStore dedicato (JSON) invece che in Room, così lo schema v1 resta invariato.
  */
-class ShoppingExtrasRepository(private val dataStore: DataStore<Preferences>) {
+class ShoppingExtrasRepository(
+    private val dataStore: DataStore<Preferences>,
+    /** Chiamata dopo ogni modifica degli extra fatta dall'utente (es. backup automatico). */
+    private val onDataChanged: () -> Unit = {},
+) {
 
     val extras: Flow<List<ShoppingExtra>> = dataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
         .map { prefs -> decode(prefs[KEY]) }
         .distinctUntilChanged()
+
+    suspend fun current(): List<ShoppingExtra> = extras.first()
+
+    /** Ripristino da backup: sostituisce tutti gli extra (non avvia il backup automatico). */
+    suspend fun replaceAll(list: List<ShoppingExtra>) {
+        dataStore.edit { prefs -> prefs[KEY] = encode(list) }
+    }
 
     /** Aggiunge un extra; ignora testi vuoti. Restituisce `false` se il nome è vuoto. */
     suspend fun add(name: String): Boolean {
@@ -47,6 +59,7 @@ class ShoppingExtrasRepository(private val dataStore: DataStore<Preferences>) {
 
     private suspend fun update(transform: (List<ShoppingExtra>) -> List<ShoppingExtra>) {
         dataStore.edit { prefs -> prefs[KEY] = encode(transform(decode(prefs[KEY]))) }
+        onDataChanged()
     }
 
     private fun decode(raw: String?): List<ShoppingExtra> =

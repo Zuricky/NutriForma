@@ -9,6 +9,8 @@ import com.nutriforma.app.data.repository.ShoppingRepository
 import com.nutriforma.app.domain.model.dayIndex
 import com.nutriforma.app.domain.shopping.DayRange
 import com.nutriforma.app.domain.shopping.ShoppingListGenerator
+import com.nutriforma.app.ui.TodayState
+import com.nutriforma.app.ui.keepCurrentWeekPresent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -45,15 +47,16 @@ class SpesaViewModel(
     clock: Clock,
 ) : ViewModel() {
 
-    private val today: LocalDate = LocalDate.now(clock)
-    private val local = MutableStateFlow(SpesaLocal(wholeWeek = true, selectedDays = setOf(today.dayIndex())))
+    private val todayState = TodayState(clock)
+    private val today: StateFlow<LocalDate> = todayState.today
+    private val local = MutableStateFlow(SpesaLocal(wholeWeek = true, selectedDays = setOf(today.value.dayIndex())))
     private var currentPlanId: Long? = null
 
     private val messages = Channel<String>(Channel.BUFFERED)
     /** Messaggi (snackbar) one-off in italiano. */
     val events = messages.receiveAsFlow()
 
-    private val plan = planRepository.observeWeek(today)
+    private val plan = today.flatMapLatest { planRepository.observeWeek(it) }
     private val checkedIds = plan.map { it?.id }.distinctUntilChanged().flatMapLatest { id ->
         if (id == null) flowOf(emptySet()) else shoppingRepository.observeCheckedFoodIds(id)
     }
@@ -75,16 +78,26 @@ class SpesaViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpesaUiState.Loading)
 
     init {
-        ensurePlan()
+        // La scheda Spesa può aprirsi prima della Dieta (o dopo un ripristino senza la settimana corrente): la crea se manca.
+        viewModelScope.keepCurrentWeekPresent(today, planRepository, foodRepository) { error ->
+            local.update {
+                it.copy(bootstrapError = if (error == null) null else "Non riesco a preparare la lista della spesa. Riprova.")
+            }
+        }
     }
 
-    /** La scheda Spesa può aprirsi prima della Dieta: crea la settimana se manca (idempotente). */
+    /** Da chiamare quando l'app torna in primo piano o passa la mezzanotte: aggiorna "oggi" e quindi la settimana. */
+    fun refreshToday() {
+        if (todayState.refresh()) local.update { it.copy(selectedDays = setOf(todayState.today.value.dayIndex())) }
+    }
+
+    /** Riprova a creare la settimana corrente dopo un errore (idempotente). */
     fun ensurePlan() {
         local.update { it.copy(bootstrapError = null) }
         viewModelScope.launch {
             try {
                 foodRepository.observeFoods().first { it.isNotEmpty() }
-                planRepository.getOrCreateWeek(today)
+                planRepository.getOrCreateWeek(today.value)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

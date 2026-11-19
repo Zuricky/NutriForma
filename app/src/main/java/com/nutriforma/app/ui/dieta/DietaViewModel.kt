@@ -12,13 +12,17 @@ import com.nutriforma.app.domain.model.dayIndex
 import com.nutriforma.app.domain.nutrition.NutritionCalculator
 import com.nutriforma.app.domain.rules.WeeklyComplianceCalculator
 import com.nutriforma.app.domain.swap.MealAlternative
+import com.nutriforma.app.ui.TodayState
+import com.nutriforma.app.ui.keepCurrentWeekPresent
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -45,8 +49,9 @@ class DietaViewModel(
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val today: LocalDate = LocalDate.now(clock)
-    private val selectedDay = savedStateHandle.getStateFlow(KEY_SELECTED_DAY, today.dayIndex())
+    private val todayState = TodayState(clock)
+    private val today: StateFlow<LocalDate> = todayState.today
+    private val selectedDay = savedStateHandle.getStateFlow(KEY_SELECTED_DAY, today.value.dayIndex())
     private val overlay = MutableStateFlow(DietaOverlay())
 
     private val messages = Channel<String>(Channel.BUFFERED)
@@ -58,20 +63,24 @@ class DietaViewModel(
     private var pendingMealId: Long? = null
     private var currentPlanId: Long? = null
 
-    private val content: StateFlow<DietaUiState> = combine(
-        planRepository.observeWeek(today),
-        foodRepository.observeFoods(),
-        userProfileRepository.profile,
-        completionRepository.completedMealIds,
-        selectedDay,
-    ) { plan, foods, profile, completed, day ->
-        if (plan == null || foods.isEmpty()) {
-            DietaUiState.Loading
-        } else {
-            currentPlanId = plan.id
-            DietaUiState.Ready(
-                buildDietaContent(plan, foods, profile, completed, day, today, complianceCalculator, nutritionCalculator),
-            )
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val content: StateFlow<DietaUiState> = today.flatMapLatest { currentDay ->
+        combine(
+            planRepository.observeWeek(currentDay),
+            foodRepository.observeFoods(),
+            userProfileRepository.profile,
+            completionRepository.completedMealIds,
+            selectedDay,
+        ) { plan, foods, profile, completed, day ->
+            if (plan == null || foods.isEmpty()) {
+                currentPlanId = null
+                DietaUiState.Loading
+            } else {
+                currentPlanId = plan.id
+                DietaUiState.Ready(
+                    buildDietaContent(plan, foods, profile, completed, day, currentDay, complianceCalculator, nutritionCalculator),
+                )
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DietaUiState.Loading)
 
@@ -82,18 +91,28 @@ class DietaViewModel(
     val overlayState: StateFlow<DietaOverlay> = overlay
 
     init {
-        ensurePlan()
+        // Crea la settimana corrente se manca (primo avvio, cambio settimana, ripristino di un backup senza di essa).
+        viewModelScope.keepCurrentWeekPresent(today, planRepository, foodRepository) { error ->
+            overlay.update {
+                it.copy(bootstrapError = if (error == null) null else "Non riesco a preparare la dieta della settimana. Riprova.")
+            }
+        }
     }
 
-    // ---- Bootstrap -----------------------------------------------------------------------------------------
+    // ---- Bootstrap / giorno corrente -----------------------------------------------------------------------
 
-    /** Waits for the food seed, then creates the current week if it does not exist yet. */
+    /** Da chiamare quando l'app torna in primo piano o passa la mezzanotte: aggiorna "oggi" e quindi la settimana. */
+    fun refreshToday() {
+        if (todayState.refresh()) selectDay(todayState.today.value.dayIndex())
+    }
+
+    /** Riprova a creare la settimana corrente dopo un errore (attende il catalogo alimenti). */
     fun ensurePlan() {
         overlay.update { it.copy(bootstrapError = null) }
         viewModelScope.launch {
             try {
                 foodRepository.observeFoods().first { it.isNotEmpty() }
-                planRepository.getOrCreateWeek(today)
+                planRepository.getOrCreateWeek(today.value)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

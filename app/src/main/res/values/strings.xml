@@ -74,6 +74,8 @@
     <string name="progressi_reminder_meals_hint">Ti avviso all\'ora di ogni pasto</string>
     <string name="progressi_reminder_water">Promemoria acqua</string>
     <string name="progressi_reminder_water_hint">Ogni %1$d ore, dalle 8 alle 21</string>
+    <string name="progressi_reminder_tip">Consiglio del giorno</string>
+    <string name="progressi_reminder_tip_hint">Un consiglio alimentare ogni mattina alle 9</string>
     <string name="progressi_reminder_weighin">Pesata settimanale</string>
     <string name="progressi_reminder_weighin_hint">Ogni lunedì alle 8 per registrare le misure</string>
 
@@ -88,7 +90,9 @@
     <string name="profilo_personal">Dati personali</string>
     <string name="profilo_birth_year">Anno di nascita</string>
     <string name="profilo_height">Altezza (cm)</string>
-    <string name="profilo_personal_hint">Servono solo a stimare le kcal giornaliere. Premi Fatto sulla tastiera per salvare.</string>
+    <string name="profilo_personal_hint">Servono solo a stimare le kcal giornaliere. Premi Salva per confermare le modifiche.</string>
+    <string name="profilo_personal_save">Salva</string>
+    <string name="profilo_personal_unsaved">Modifiche non salvate</string>
     <string name="profilo_foods">Alimenti</string>
     <string name="profilo_dislikes">Non mi piace / Intolleranze</string>
     <string name="profilo_dislikes_none">Nessun alimento escluso</string>
@@ -115,7 +119,7 @@
     <string name="backup_folder">Cartella: %1$s</string>
     <string name="backup_no_folder">Nessuna cartella scelta (es. Documents/DietaBackup).</string>
     <string name="backup_auto">Backup automatico</string>
-    <string name="backup_auto_hint">Aggiorna dieta_backup_auto.json quando generi una settimana o registri misure.</string>
+    <string name="backup_auto_hint">Aggiorna dieta_backup_auto.json a ogni modifica: dieta, spesa, acqua, misure e profilo.</string>
     <string name="backup_last">Ultimo backup: %1$s</string>
     <string name="backup_never">Nessun backup ancora eseguito.</string>
     <string name="backup_restore_title">Ripristinare il backup?</string>

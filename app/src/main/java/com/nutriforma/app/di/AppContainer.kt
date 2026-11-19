@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import java.time.Clock
+import java.time.LocalDate
 
 /**
  * Manual dependency container.
@@ -103,7 +104,7 @@ class DefaultAppContainer(
             scope = CoroutineScope(SupervisorJob() + ioDispatcher),
             produceFile = { appContext.preferencesDataStoreFile(UserProfileKeys.DATASTORE_NAME) },
         )
-        UserProfileRepository(dataStore)
+        UserProfileRepository(dataStore, onChanged = { backupManager.scheduleAutoBackup() })
     }
 
     override val foodRepository: FoodRepository by lazy { FoodRepository(database.foodDao()) }
@@ -152,13 +153,16 @@ class DefaultAppContainer(
             scope = CoroutineScope(SupervisorJob() + ioDispatcher),
             produceFile = { appContext.preferencesDataStoreFile(MealCompletionRepository.DATASTORE_NAME) },
         )
-        MealCompletionRepository(dataStore)
+        MealCompletionRepository(dataStore, onDataChanged = { backupManager.scheduleAutoBackup() })
     }
 
     override val shoppingListGenerator: ShoppingListGenerator = ShoppingListGenerator()
 
     override val shoppingRepository: ShoppingRepository by lazy {
-        ShoppingRepository(database.shoppingCheckDao(), clock, ioDispatcher)
+        ShoppingRepository(
+            database.shoppingCheckDao(), clock, ioDispatcher,
+            onDataChanged = { backupManager.scheduleAutoBackup() },
+        )
     }
 
     override val shoppingExtrasRepository: ShoppingExtrasRepository by lazy {
@@ -166,7 +170,7 @@ class DefaultAppContainer(
             scope = CoroutineScope(SupervisorJob() + ioDispatcher),
             produceFile = { appContext.preferencesDataStoreFile(ShoppingExtrasRepository.DATASTORE_NAME) },
         )
-        ShoppingExtrasRepository(dataStore)
+        ShoppingExtrasRepository(dataStore, onDataChanged = { backupManager.scheduleAutoBackup() })
     }
 
     override val trackingRepository: TrackingRepository by lazy {
@@ -189,7 +193,11 @@ class DefaultAppContainer(
             checkDao = database.shoppingCheckDao(),
             transactions = RoomTransactionRunner(database),
             profileRepository = userProfileRepository,
+            completionRepository = mealCompletionRepository,
+            extrasRepository = shoppingExtrasRepository,
             clock = clock,
+            ensureCurrentWeek = { planRepository.getOrCreateWeek(LocalDate.now(clock)) },
+            syncReminders = { reminderScheduler.syncWithProfile() },
             appVersionName = runCatching {
                 appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
             }.getOrNull() ?: "",
@@ -197,7 +205,7 @@ class DefaultAppContainer(
     }
 
     override val backupManager: BackupManager by lazy {
-        BackupManager(appContext, backupService, userProfileRepository, reminderScheduler, applicationScope, clock, ioDispatcher)
+        BackupManager(appContext, backupService, userProfileRepository, applicationScope, clock, ioDispatcher)
     }
 
     private companion object {

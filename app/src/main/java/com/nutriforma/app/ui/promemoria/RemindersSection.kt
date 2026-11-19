@@ -26,7 +26,7 @@ import com.nutriforma.app.domain.model.ReminderSettings
 import com.nutriforma.app.notifications.hasNotificationPermission
 import com.nutriforma.app.notifications.needsNotificationPermission
 
-enum class ReminderKind { MEALS, WATER, WEIGH_IN }
+enum class ReminderKind { MEALS, WATER, TIP, WEIGH_IN }
 
 /**
  * Interruttori dei promemoria. Su Android 13+ accendere un promemoria chiede prima il permesso `POST_NOTIFICATIONS`:
@@ -65,6 +65,10 @@ fun RemindersSection(
             stringResource(R.string.progressi_reminder_water_hint, reminders.waterIntervalMinutes / 60),
             reminders.waterRemindersEnabled,
         ) { toggle(ReminderKind.WATER, it) }
+        ReminderRow(
+            stringResource(R.string.progressi_reminder_tip), stringResource(R.string.progressi_reminder_tip_hint),
+            reminders.dailyTipEnabled,
+        ) { toggle(ReminderKind.TIP, it) }
         ReminderRow(
             stringResource(R.string.progressi_reminder_weighin), stringResource(R.string.progressi_reminder_weighin_hint),
             reminders.weighInReminderEnabled,

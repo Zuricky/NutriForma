@@ -13,6 +13,7 @@ object NotificationChannels {
     const val MEALS = "promemoria_pasti"
     const val WATER = "promemoria_acqua"
     const val WEIGH_IN = "promemoria_peso"
+    const val TIPS = "promemoria_consigli"
 
     fun createAll(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -22,6 +23,7 @@ object NotificationChannels {
                 NotificationChannel(MEALS, "Promemoria pasti", NotificationManager.IMPORTANCE_DEFAULT),
                 NotificationChannel(WATER, "Promemoria acqua", NotificationManager.IMPORTANCE_DEFAULT),
                 NotificationChannel(WEIGH_IN, "Promemoria misurazioni", NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(TIPS, "Consiglio del giorno", NotificationManager.IMPORTANCE_DEFAULT),
             ),
         )
     }

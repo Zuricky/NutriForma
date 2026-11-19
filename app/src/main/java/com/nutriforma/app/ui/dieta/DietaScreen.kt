@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.domain.model.ComplianceStatus
 import com.nutriforma.app.ui.theme.ComplianceOk
 import com.nutriforma.app.ui.theme.ComplianceViolation
@@ -76,6 +77,7 @@ import com.nutriforma.app.ui.theme.ComplianceWarningText
 
 @Composable
 fun DietaScreen(viewModel: DietaViewModel, modifier: Modifier = Modifier) {
+    RefreshTodayEffect(viewModel::refreshToday)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val overlay by viewModel.overlayState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }

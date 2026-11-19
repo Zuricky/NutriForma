@@ -55,11 +55,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.data.repository.ShoppingExtrasRepository
 import com.nutriforma.app.domain.model.DayNames
 
 @Composable
 fun SpesaScreen(viewModel: SpesaViewModel, modifier: Modifier = Modifier) {
+    RefreshTodayEffect(viewModel::refreshToday)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) { viewModel.events.collect { snackbarHost.showSnackbar(it) } }

@@ -54,7 +54,7 @@ class PlanRepository(
     private val portionCalculator: PortionCalculator,
     private val clock: Clock,
     private val ioDispatcher: CoroutineDispatcher,
-    /** Chiamata dopo la creazione o rigenerazione di una settimana (es. backup automatico). */
+    /** Chiamata dopo ogni modifica ai piani: creazione, rigenerazione, cambi pasto, pasto libero, turno lungo (es. backup automatico). */
     private val onDataChanged: () -> Unit = {},
 ) {
     private val createLock = Mutex()
@@ -142,6 +142,7 @@ class PlanRepository(
             mealDao.updateAll(updated)
             planDao.update(plan.copy(goal = profile.goal, sportLevel = profile.sportLevel, updatedAtMillis = clock.millis()))
         }
+        onDataChanged()
     }
 
     /** Valid alternatives for a meal (day + slot), each flagged when it would exceed a weekly cap. */
@@ -158,6 +159,7 @@ class PlanRepository(
             mealDao.update(meal.copy(components = components, isUserModified = true))
             touchPlan(meal.planId)
         }
+        onDataChanged()
     }
 
     /**
@@ -182,6 +184,7 @@ class PlanRepository(
             mealDao.update(rebuilt.copy(isUserModified = true).toEntity())
             touchPlan(meal.planId)
         }
+        onDataChanged()
     }
 
     /** SPEC §5: rewrites only the two snack meals of [dayIndex]; [config] `null` = turno lungo off. */
@@ -198,6 +201,7 @@ class PlanRepository(
             mealDao.updateAll(snacks.map { it.copy(isUserModified = true).toEntity() })
             planDao.update(plan.copy(turnoLungoDays = days, updatedAtMillis = clock.millis()))
         }
+        onDataChanged()
     }
 
     /**
