@@ -2,7 +2,10 @@ package com.nutriforma.app.ui.progressi
 
 import com.nutriforma.app.data.AppFixture
 import com.nutriforma.app.data.MutableClock
+import com.nutriforma.app.domain.model.Goal
 import com.nutriforma.app.domain.tips.DailyTips
+import com.nutriforma.app.domain.tips.MotivationTrigger
+import com.nutriforma.app.domain.tracking.MeasurementMetric
 import com.nutriforma.app.ui.MainDispatcherRule
 import com.nutriforma.app.ui.awaitUntil
 import com.nutriforma.app.ui.awaitValue
@@ -10,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -68,6 +72,42 @@ class ProgressiViewModelTest {
         vm.refreshToday()
         val state = vm.uiState.awaitValue { it.waterMl == 250 }
         assertEquals(LocalDate.of(2026, 11, 17), state.today)
+    }
+
+    @Test
+    fun waterComplimentAppearsOnlyOnceTheGoalIsReachedAndIsStable() = runBlocking {
+        val vm = newViewModel()
+        vm.addWater(500)
+        assertNull(vm.uiState.awaitValue { it.waterMl == 500 }.waterCompliment)
+
+        vm.addWater(1000)
+        vm.addWater(250)
+        val reached = vm.uiState.awaitValue { it.waterMl == 1750 }
+        assertEquals(MotivationTrigger.WATER_GOAL, reached.waterCompliment!!.trigger)
+
+        // Nuove letture dello stato non cambiano la frase (niente sfarfallio).
+        vm.addWater(250)
+        assertEquals(reached.waterCompliment, vm.uiState.awaitValue { it.waterMl == 2000 }.waterCompliment)
+
+        vm.subtractWater(250)
+        vm.subtractWater(250)
+        assertNull("sotto l'obiettivo il complimento sparisce", vm.uiState.awaitValue { it.waterMl == 1500 }.waterCompliment)
+    }
+
+    @Test
+    fun goalProgressComplimentFollowsTheProfileGoalAndTheMeasurements() = runBlocking {
+        val vm = newViewModel()
+        val today = LocalDate.of(2026, 11, 17)
+        f.addWeight(today.minusDays(20).toEpochDay(), 82.0)
+        f.addWeight(today.toEpochDay(), 80.0)
+
+        // Equilibrio: ventidue giorni, due chili in meno = non stabile e solo 2 misure → nessun complimento.
+        assertNull(vm.uiState.awaitValue { it.series[MeasurementMetric.PESO]?.size == 2 }.progressCompliment)
+
+        f.profileRepository.update { it.copy(goal = Goal.DIMAGRIMENTO) }
+        val loss = vm.uiState.awaitValue { it.progressCompliment != null }.progressCompliment!!
+        assertEquals(MotivationTrigger.GOAL_PROGRESS, loss.trigger)
+        assertEquals("−2,0 kg dall'inizio", loss.detail)
     }
 
     @Test

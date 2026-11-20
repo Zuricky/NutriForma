@@ -17,10 +17,13 @@ import com.nutriforma.app.domain.nutrition.PortionFormatter
 import com.nutriforma.app.domain.rules.DietRules
 import com.nutriforma.app.domain.rules.WeeklyComplianceCalculator
 import com.nutriforma.app.domain.swap.MealAlternative
+import com.nutriforma.app.domain.tips.MotivationalMessage
+import com.nutriforma.app.domain.tips.MotivationalMessages
 import com.nutriforma.app.ui.food.FoodIcon
 import com.nutriforma.app.ui.food.FoodIcons
 import java.text.NumberFormat
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -69,6 +72,8 @@ data class DietaContent(
     val pranzoLiberoHint: String?,
     val pranzoMealId: Long?,
     val meals: List<MealCardUi>,
+    /** Complimento di oggi (giornata o settimana completata); `null` se non c'è un traguardo da celebrare. */
+    val motivation: MotivationalMessage? = null,
 )
 
 sealed interface DietaUiState {
@@ -220,6 +225,21 @@ fun buildDietaContent(
     val used = snapshot.counts.pastiLiberi
     val canToggle = pranzo != null && (isLibero || used < quota)
 
+    // Complimenti solo per la settimana in corso: prima quella (traguardo più grande), poi la giornata di oggi.
+    val todayIndex = ChronoUnit.DAYS.between(plan.weekStart, today).toInt().takeIf { it in 0..6 }
+    val completable = plan.meals.filter { it.type != MealType.SPUNTINO_SALTATO }
+    val motivation = if (todayIndex == null) {
+        null
+    } else {
+        val todayMeals = completable.filter { it.dayIndex == todayIndex }
+        MotivationalMessages.forWeek(
+            completable = completable.size,
+            completed = completable.count { it.id in completedMealIds },
+            hasViolations = snapshot.report.hasViolations,
+            date = today,
+        ) ?: MotivationalMessages.forDay(todayMeals.size, todayMeals.count { it.id in completedMealIds }, today)
+    }
+
     val freeNote = if (dayTotals.includesPastoLibero) " (pasto libero escluso)" else ""
     val macros = dayTotals.totals
     val average = snapshot.weekAverage
@@ -263,5 +283,6 @@ fun buildDietaContent(
                 isMerged = meal.type == MealType.SPUNTINO_SALTATO,
             )
         },
+        motivation = motivation,
     )
 }

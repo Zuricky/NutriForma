@@ -36,11 +36,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.MotivationBanner
 import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.domain.model.BodyMeasurement
 import com.nutriforma.app.domain.tracking.MeasurementMetric
@@ -85,6 +87,8 @@ fun ProgressiScreen(viewModel: ProgressiViewModel, modifier: Modifier = Modifier
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item { WaterCard(state, viewModel::addWater, viewModel::subtractWater) }
+            state.waterCompliment?.let { message -> item(key = "water-compliment") { MotivationBanner(message) } }
+            state.progressCompliment?.let { message -> item(key = "progress-compliment") { MotivationBanner(message) } }
             item { TipCard(state.tip) }
             item {
                 Button(onClick = viewModel::openDialog, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -137,9 +141,6 @@ private fun WaterCard(state: ProgressiUiState, onAdd: (Int) -> Unit, onSubtract:
             trackColor = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp).heightIn(min = 10.dp),
         )
-        if (reached) {
-            Text(stringResource(R.string.progressi_water_done), color = ComplianceOk, style = MaterialTheme.typography.bodyMedium)
-        }
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { onAdd(250) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.progressi_water_add_250)) }
             Button(onClick = { onAdd(500) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(stringResource(R.string.progressi_water_add_500)) }
@@ -207,7 +208,12 @@ private fun ChartCard(metric: MeasurementMetric, series: List<SeriesPoint>) {
                 series = series,
                 unit = metric.unit,
                 lineColor = color,
-                description = "Grafico ${metric.labelIt.lowercase()}: ${series.size} misure, ultima ${formatValue(series.last().value, metric.unit)}",
+                description = stringResource(
+                    R.string.progressi_chart_description,
+                    metric.labelIt.lowercase(),
+                    pluralStringResource(R.plurals.measures_count, series.size, series.size),
+                    formatValue(series.last().value, metric.unit),
+                ),
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
@@ -254,9 +260,9 @@ private fun RecentRow(m: BodyMeasurement, onDelete: () -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(m.date.format(rowDate), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 val parts = listOfNotNull(
-                    m.weightKg?.let { "Peso ${formatValue(it, "kg")}" },
-                    m.waistCm?.let { "Vita ${formatValue(it, "cm")}" },
-                    m.thighCm?.let { "Cosce ${formatValue(it, "cm")}" },
+                    m.weightKg?.let { stringResource(R.string.progressi_row_weight, formatValue(it, "kg")) },
+                    m.waistCm?.let { stringResource(R.string.progressi_row_waist, formatValue(it, "cm")) },
+                    m.thighCm?.let { stringResource(R.string.progressi_row_thigh, formatValue(it, "cm")) },
                 )
                 Text(parts.joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
             }

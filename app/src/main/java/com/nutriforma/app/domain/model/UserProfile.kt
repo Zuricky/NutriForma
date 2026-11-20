@@ -20,6 +20,10 @@ data class UserProfile(
     val onboardingCompleted: Boolean = false,
     val goal: Goal = Goal.EQUILIBRIO,
     val sportLevel: SportLevel = SportLevel.MOLTO_INTENSO,
+    /** Vuoto = non indicato. */
+    val firstName: String = "",
+    /** Vuoto = non indicato. */
+    val lastName: String = "",
     val sesso: Sesso? = null,
     val birthYear: Int? = null,
     val heightCm: Int? = null,

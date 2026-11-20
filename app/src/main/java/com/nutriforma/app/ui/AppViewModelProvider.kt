@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.createSavedStateHandle
 import com.nutriforma.app.NutriFormaApplication
 import com.nutriforma.app.ui.dieta.DietaViewModel
+import com.nutriforma.app.ui.impostazioni.ImpostazioniViewModel
 import com.nutriforma.app.ui.profilo.EsclusioniViewModel
 import com.nutriforma.app.ui.profilo.ProfiloViewModel
 import com.nutriforma.app.ui.progressi.ProgressiViewModel
@@ -54,6 +55,14 @@ object AppViewModelProvider {
                 planRepository = container.planRepository,
                 trackingRepository = container.trackingRepository,
                 energyTargetCalculator = container.energyTargetCalculator,
+                restoreCount = container.backupManager.restoreCount,
+                clock = container.clock,
+            )
+        }
+        initializer {
+            val container = nutriFormaApplication().container
+            ImpostazioniViewModel(
+                userProfileRepository = container.userProfileRepository,
                 reminderSync = container.reminderScheduler,
                 backup = container.backupManager,
                 clock = container.clock,

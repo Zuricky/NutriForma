@@ -78,6 +78,9 @@ data class BackupProfile(
     val waterGoalMl: Int = 1700,
     val reminders: BackupReminders = BackupReminders(),
     val autoBackupEnabled: Boolean = false,
+    /** Nome e cognome: assenti nei backup creati prima della 1.2 (si leggono come "non indicato"). */
+    val firstName: String = "",
+    val lastName: String = "",
 )
 
 @Serializable
@@ -170,6 +173,7 @@ fun UserProfile.toBackup() = BackupProfile(
         weighInMinutes = reminders.weighInMinutes,
     ),
     autoBackupEnabled = autoBackupEnabled,
+    firstName = firstName, lastName = lastName,
 )
 
 /**
@@ -180,7 +184,8 @@ fun UserProfile.toBackup() = BackupProfile(
 fun BackupProfile.toProfile(current: UserProfile): UserProfile {
     val defaults = ReminderSettings()
     return current.copy(
-        onboardingCompleted = onboardingCompleted, goal = goal, sportLevel = sportLevel, sesso = sesso,
+        onboardingCompleted = onboardingCompleted, goal = goal, sportLevel = sportLevel,
+        firstName = firstName.trim(), lastName = lastName.trim(), sesso = sesso,
         birthYear = birthYear, heightCm = heightCm, dislikedFoodIds = dislikedFoodIds,
         cheatMealsPerWeek = cheatMealsPerWeek.coerceIn(1, 2), turnoLungoDefaultDays = turnoLungoDefaultDays,
         turnoLungoDefaultOption = turnoLungoDefaultOption, turnoLungoDefaultSlot = turnoLungoDefaultSlot,

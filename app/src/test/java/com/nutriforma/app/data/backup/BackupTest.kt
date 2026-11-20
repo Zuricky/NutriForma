@@ -226,6 +226,48 @@ class BackupTest {
     }
 
     @Test
+    fun backupsWithoutNamesDecodeAsNoNameAndStillRestore() = runBlocking {
+        // Un backup della 1.1: il profilo non conosce "firstName" / "lastName".
+        val legacy = """
+        {
+          "schemaVersion": 1, "appVersionName": "1.1.0", "exportedAtMillis": 1794000000000,
+          "profile": { "goal": "ENERGIA", "sportLevel": "INTENSO", "sesso": "FEMMINA", "birthYear": 1991, "heightCm": 168 }
+        }
+        """.trimIndent()
+        val file = BackupCodec.decode(legacy)
+        assertEquals("", file.profile.firstName)
+        assertEquals("", file.profile.lastName)
+
+        newService().restore(file)
+
+        val profile = f.profileRepository.current()
+        assertEquals("", profile.firstName)
+        assertEquals("", profile.lastName)
+        assertEquals(1991, profile.birthYear)
+        assertEquals(168, profile.heightCm)
+        assertEquals(Goal.ENERGIA, profile.goal)
+    }
+
+    @Test
+    fun namesRoundTripThroughExportAndRestore() = runBlocking {
+        seedData()
+        f.profileRepository.update { it.copy(firstName = "Giulia", lastName = "Rossi") }
+        val json = BackupCodec.encode(newService().buildBackup())
+        assertTrue(json.contains("\"firstName\": \"Giulia\""))
+        assertEquals(file(json).profile.lastName, "Rossi")
+
+        // "Nuovo telefono": nomi diversi che il ripristino sostituisce.
+        f.profileRepository.update { it.copy(firstName = "Altro", lastName = "Nome") }
+        newService().restore(BackupCodec.decode(json))
+
+        val profile = f.profileRepository.current()
+        assertEquals("Giulia", profile.firstName)
+        assertEquals("Rossi", profile.lastName)
+    }
+
+    private fun file(json: String) = BackupCodec.decode(json)
+
+    @Test
     fun completedMealIdsOfUnknownMealsAreDropped() = runBlocking {
         seedData()
         val real = f.mealDao.getAll().first().id

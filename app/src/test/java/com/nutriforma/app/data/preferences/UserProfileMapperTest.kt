@@ -18,6 +18,8 @@ class UserProfileMapperTest {
         onboardingCompleted = true,
         goal = Goal.DIMAGRIMENTO,
         sportLevel = SportLevel.MODERATO,
+        firstName = "Giulia",
+        lastName = "Rossi",
         sesso = Sesso.FEMMINA,
         birthYear = 1991,
         heightCm = 168,
@@ -130,9 +132,34 @@ class UserProfileMapperTest {
     }
 
     @Test
+    fun namesAreTrimmedAndBlankNamesAreNotStored() {
+        val stored = UserProfileMapper.toMap(UserProfile(firstName = "  Anna ", lastName = "   "))
+        assertEquals("Anna", stored[UserProfileKeys.FIRST_NAME])
+        assertNull("un nome vuoto non lascia la chiave", stored[UserProfileKeys.LAST_NAME])
+        assertTrue(stored.containsKey(UserProfileKeys.LAST_NAME))
+
+        val read = UserProfileMapper.fromMap(
+            mapOf(UserProfileKeys.FIRST_NAME to "  Luca ", UserProfileKeys.LAST_NAME to 42),
+        )
+        assertEquals("Luca", read.firstName)
+        assertEquals("un valore di tipo sbagliato diventa vuoto", "", read.lastName)
+    }
+
+    @Test
+    fun profilesStoredBeforeTheNamesExistedReadAsNoName() {
+        val old = UserProfileMapper.toMap(UserProfile(sesso = Sesso.MASCHIO, birthYear = 1990, heightCm = 180))
+            .filterKeys { it != UserProfileKeys.FIRST_NAME && it != UserProfileKeys.LAST_NAME }
+        val profile = UserProfileMapper.fromMap(old)
+        assertEquals("", profile.firstName)
+        assertEquals("", profile.lastName)
+        assertEquals(1990, profile.birthYear)
+        assertEquals(Sesso.MASCHIO, profile.sesso)
+    }
+
+    @Test
     fun keyNamesMatchThePlan() {
         val expected = setOf(
-            "onboarding_completed", "goal", "sport_level", "sesso", "birth_year", "height_cm", "disliked_food_ids",
+            "onboarding_completed", "goal", "sport_level", "first_name", "last_name", "sesso", "birth_year", "height_cm", "disliked_food_ids",
             "cheat_meals_per_week", "turno_lungo_default_days", "turno_lungo_default_option", "turno_lungo_default_slot",
             "water_goal_ml", "reminder_meals_enabled",
             "reminder_time_colazione", "reminder_time_meta_mattina", "reminder_time_pranzo",

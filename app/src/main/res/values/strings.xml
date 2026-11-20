@@ -56,28 +56,26 @@
     <string name="progressi_water_add_250">+250 ml</string>
     <string name="progressi_water_add_500">+500 ml</string>
     <string name="progressi_water_sub_250">−250 ml</string>
-    <string name="progressi_water_done">Obiettivo raggiunto, ottimo lavoro!</string>
     <string name="progressi_tip_title">Consiglio del giorno</string>
     <string name="progressi_add_measures">+ Registra misure</string>
     <string name="progressi_latest">Ultima misura: %1$s</string>
     <string name="progressi_chart_empty">Nessuna misura di %1$s: registra la prima per vedere il grafico.</string>
     <string name="progressi_recent_title">Misure recenti</string>
     <string name="progressi_recent_empty">Non hai ancora registrato misure.</string>
+    <string name="progressi_row_weight">Peso %1$s</string>
+    <string name="progressi_row_waist">Vita %1$s</string>
+    <string name="progressi_row_thigh">Cosce %1$s</string>
+    <string name="progressi_chart_description">Grafico %1$s: %2$s, ultima %3$s</string>
+    <plurals name="measures_count">
+        <item quantity="one">%d misura</item>
+        <item quantity="other">%d misure</item>
+    </plurals>
     <string name="progressi_delete_measure">Elimina la misura del %1$s</string>
     <string name="progressi_measure_title">Registra misure</string>
     <string name="progressi_weight_field">Peso (kg)</string>
     <string name="progressi_waist_field">Vita (cm)</string>
     <string name="progressi_thigh_field">Cosce (cm)</string>
     <string name="progressi_measure_hint">Compila almeno un campo. I campi vuoti non modificano i valori già salvati per quel giorno.</string>
-    <string name="progressi_reminders_title">Promemoria</string>
-    <string name="progressi_reminder_meals">Promemoria pasti</string>
-    <string name="progressi_reminder_meals_hint">Ti avviso all\'ora di ogni pasto</string>
-    <string name="progressi_reminder_water">Promemoria acqua</string>
-    <string name="progressi_reminder_water_hint">Ogni %1$d ore, dalle 8 alle 21</string>
-    <string name="progressi_reminder_tip">Consiglio del giorno</string>
-    <string name="progressi_reminder_tip_hint">Un consiglio alimentare ogni mattina alle 9</string>
-    <string name="progressi_reminder_weighin">Pesata settimanale</string>
-    <string name="progressi_reminder_weighin_hint">Ogni lunedì alle 8 per registrare le misure</string>
 
     <!-- Profilo -->
     <string name="action_back">Indietro</string>
@@ -86,22 +84,57 @@
     <string name="profilo_goal_hint">Cambiando obiettivo, le quantità della settimana in corso vengono ricalcolate.</string>
     <string name="profilo_sport">Livello sportivo</string>
     <string name="profilo_kcal_target">Fabbisogno stimato: %1$s al giorno · proteine %2$d g · carboidrati %3$d g · grassi %4$d g</string>
-    <string name="profilo_kcal_missing">Inserisci sesso, anno di nascita e altezza qui sotto e registra il peso in Progressi per vedere le kcal giornaliere stimate.</string>
+    <string name="profilo_kcal_missing">Inserisci sesso, anno di nascita, altezza e peso nei dati personali per vedere le kcal giornaliere stimate.</string>
     <string name="profilo_personal">Dati personali</string>
+    <string name="profilo_first_name">Nome</string>
+    <string name="profilo_last_name">Cognome</string>
+    <string name="profilo_sex">Sesso</string>
     <string name="profilo_birth_year">Anno di nascita</string>
     <string name="profilo_height">Altezza (cm)</string>
-    <string name="profilo_personal_hint">Servono solo a stimare le kcal giornaliere. Premi Salva per confermare le modifiche.</string>
-    <string name="profilo_personal_save">Salva</string>
+    <string name="profilo_weight">Peso (kg)</string>
+    <string name="profilo_age_value">%1$d (%2$d anni)</string>
+    <string name="profilo_not_set">Non indicato</string>
+    <string name="profilo_edit">Modifica</string>
+    <string name="profilo_edit_description">Modifica i dati personali</string>
+    <string name="profilo_personal_hint">Servono a stimare le kcal giornaliere e l\'IMC. Il peso salvato qui diventa la misura di oggi in Progressi.</string>
     <string name="profilo_personal_unsaved">Modifiche non salvate</string>
+    <string name="profilo_bmi_title">Indice di Massa Corporea (IMC)</string>
+    <string name="profilo_bmi_missing">Inserisci altezza e peso nei dati personali per calcolare l\'IMC.</string>
+    <string name="profilo_bmi_hint">Indicativo: l\'IMC non distingue tra massa muscolare e massa grassa.</string>
+    <string name="profilo_bmi_description">IMC %1$s, %2$s</string>
     <string name="profilo_foods">Alimenti</string>
     <string name="profilo_dislikes">Non mi piace / Intolleranze</string>
     <string name="profilo_dislikes_none">Nessun alimento escluso</string>
     <string name="profilo_dislikes_count">%1$d alimenti esclusi</string>
     <string name="profilo_cheat">Pasti liberi a settimana</string>
+    <string name="profilo_cheat_one">1 a settimana</string>
+    <string name="profilo_cheat_two">2 a settimana</string>
     <string name="profilo_cheat_hint">Il cambio vale dalla prossima settimana generata.</string>
-    <string name="profilo_reminders">Promemoria</string>
-    <string name="profilo_info">Informazioni</string>
-    <string name="profilo_disclaimer">I valori nutrizionali sono indicativi. Questa app non sostituisce il parere di un medico o di un nutrizionista.</string>
+
+    <!-- Impostazioni -->
+    <string name="impostazioni_title">Impostazioni</string>
+    <string name="impostazioni_open">Impostazioni</string>
+    <string name="impostazioni_reminders">Promemoria e notifiche</string>
+    <string name="impostazioni_reminder_meals">Promemoria pasti</string>
+    <string name="impostazioni_reminder_meals_hint">Ti avviso all\'ora di ogni pasto</string>
+    <string name="impostazioni_reminder_water">Promemoria acqua</string>
+    <string name="impostazioni_reminder_water_hint">Ogni %1$d ore, dalle 8 alle 21</string>
+    <string name="impostazioni_reminder_tip">Consiglio del giorno</string>
+    <string name="impostazioni_reminder_tip_hint">Un consiglio alimentare ogni mattina alle 9</string>
+    <string name="impostazioni_reminder_weighin">Pesata settimanale</string>
+    <string name="impostazioni_reminder_weighin_hint">Ogni lunedì alle 8 per registrare le misure</string>
+    <string name="impostazioni_info">Informazioni</string>
+    <string name="impostazioni_version">Versione %1$s</string>
+    <string name="impostazioni_disclaimer">I valori nutrizionali sono indicativi. Questa app non sostituisce il parere di un medico o di un nutrizionista.</string>
+
+    <!-- Complimenti -->
+    <string name="motivation_title">Complimenti!</string>
+
+    <!-- Notifiche -->
+    <string name="channel_meals">Promemoria pasti</string>
+    <string name="channel_water">Promemoria acqua</string>
+    <string name="channel_weigh_in">Promemoria misurazioni</string>
+    <string name="channel_tips">Consiglio del giorno</string>
 
     <!-- Esclusioni -->
     <string name="esclusioni_title">Non mi piace / Intolleranze</string>

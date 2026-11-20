@@ -21,6 +21,8 @@ object UserProfileMapper {
             onboardingCompleted = map.bool(K.ONBOARDING_COMPLETED, d.onboardingCompleted),
             goal = map.enum(K.GOAL, d.goal),
             sportLevel = map.enum(K.SPORT_LEVEL, d.sportLevel),
+            firstName = map.text(K.FIRST_NAME),
+            lastName = map.text(K.LAST_NAME),
             sesso = map.enumOrNull<Sesso>(K.SESSO),
             birthYear = map.int(K.BIRTH_YEAR),
             heightCm = map.int(K.HEIGHT_CM),
@@ -63,6 +65,8 @@ object UserProfileMapper {
             K.ONBOARDING_COMPLETED to profile.onboardingCompleted,
             K.GOAL to profile.goal.name,
             K.SPORT_LEVEL to profile.sportLevel.name,
+            K.FIRST_NAME to profile.firstName.trim().ifEmpty { null },
+            K.LAST_NAME to profile.lastName.trim().ifEmpty { null },
             K.SESSO to profile.sesso?.name,
             K.BIRTH_YEAR to profile.birthYear,
             K.HEIGHT_CM to profile.heightCm,
@@ -96,6 +100,9 @@ object UserProfileMapper {
     private fun Map<String, Any?>.bool(key: String, default: Boolean): Boolean = this[key] as? Boolean ?: default
 
     private fun Map<String, Any?>.int(key: String): Int? = this[key] as? Int
+
+    /** Testo assente o di tipo sbagliato = stringa vuota. */
+    private fun Map<String, Any?>.text(key: String): String = (this[key] as? String)?.trim().orEmpty()
 
     private fun Map<String, Any?>.stringSet(key: String): Set<String>? =
         (this[key] as? Set<*>)?.filterIsInstance<String>()?.toSet()

@@ -12,6 +12,8 @@ object UserProfileKeys {
     const val ONBOARDING_COMPLETED = "onboarding_completed"
     const val GOAL = "goal"
     const val SPORT_LEVEL = "sport_level"
+    const val FIRST_NAME = "first_name"
+    const val LAST_NAME = "last_name"
     const val SESSO = "sesso"
     const val BIRTH_YEAR = "birth_year"
     const val HEIGHT_CM = "height_cm"

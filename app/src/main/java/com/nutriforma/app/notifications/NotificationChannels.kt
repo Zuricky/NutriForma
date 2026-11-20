@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.nutriforma.app.R
 
 object NotificationChannels {
     const val MEALS = "promemoria_pasti"
@@ -20,10 +21,10 @@ object NotificationChannels {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannels(
             listOf(
-                NotificationChannel(MEALS, "Promemoria pasti", NotificationManager.IMPORTANCE_DEFAULT),
-                NotificationChannel(WATER, "Promemoria acqua", NotificationManager.IMPORTANCE_DEFAULT),
-                NotificationChannel(WEIGH_IN, "Promemoria misurazioni", NotificationManager.IMPORTANCE_DEFAULT),
-                NotificationChannel(TIPS, "Consiglio del giorno", NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(MEALS, context.getString(R.string.channel_meals), NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(WATER, context.getString(R.string.channel_water), NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(WEIGH_IN, context.getString(R.string.channel_weigh_in), NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(TIPS, context.getString(R.string.channel_tips), NotificationManager.IMPORTANCE_DEFAULT),
             ),
         )
     }

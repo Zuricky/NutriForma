@@ -68,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nutriforma.app.R
+import com.nutriforma.app.ui.MotivationBanner
 import com.nutriforma.app.ui.RefreshTodayEffect
 import com.nutriforma.app.domain.model.ComplianceStatus
 import com.nutriforma.app.ui.food.FoodIconImage
@@ -219,6 +220,7 @@ private fun DietaContentList(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        content.motivation?.let { message -> item(key = "motivation") { MotivationBanner(message) } }
         item(key = "rules") { RulesSummaryCard(content) }
         item(key = "days") { DaySelector(content, onSelectDay) }
         item(key = "controls") { DayControlsCard(content, onTurnoLungo, onPranzoLibero) }

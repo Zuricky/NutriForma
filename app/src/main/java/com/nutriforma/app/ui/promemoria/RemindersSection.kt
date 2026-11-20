@@ -57,20 +57,20 @@ fun RemindersSection(
     }
     Column {
         ReminderRow(
-            stringResource(R.string.progressi_reminder_meals), stringResource(R.string.progressi_reminder_meals_hint),
+            stringResource(R.string.impostazioni_reminder_meals), stringResource(R.string.impostazioni_reminder_meals_hint),
             reminders.mealRemindersEnabled,
         ) { toggle(ReminderKind.MEALS, it) }
         ReminderRow(
-            stringResource(R.string.progressi_reminder_water),
-            stringResource(R.string.progressi_reminder_water_hint, reminders.waterIntervalMinutes / 60),
+            stringResource(R.string.impostazioni_reminder_water),
+            stringResource(R.string.impostazioni_reminder_water_hint, reminders.waterIntervalMinutes / 60),
             reminders.waterRemindersEnabled,
         ) { toggle(ReminderKind.WATER, it) }
         ReminderRow(
-            stringResource(R.string.progressi_reminder_tip), stringResource(R.string.progressi_reminder_tip_hint),
+            stringResource(R.string.impostazioni_reminder_tip), stringResource(R.string.impostazioni_reminder_tip_hint),
             reminders.dailyTipEnabled,
         ) { toggle(ReminderKind.TIP, it) }
         ReminderRow(
-            stringResource(R.string.progressi_reminder_weighin), stringResource(R.string.progressi_reminder_weighin_hint),
+            stringResource(R.string.impostazioni_reminder_weighin), stringResource(R.string.impostazioni_reminder_weighin_hint),
             reminders.weighInReminderEnabled,
         ) { toggle(ReminderKind.WEIGH_IN, it) }
     }

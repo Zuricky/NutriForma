@@ -3,6 +3,7 @@ package com.nutriforma.app.ui.profilo
 import com.nutriforma.app.domain.TestFoods
 import com.nutriforma.app.domain.model.SportLevel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -20,9 +21,48 @@ class ProfiloUiStateTest {
     }
 
     @Test
-    fun folderNameIsReadableFromTreeUri() {
-        assertEquals("Documents/DietaBackup", folderDisplayName("content://com.android.externalstorage.documents/tree/primary%3ADocuments%2FDietaBackup"))
-        assertEquals("content://altro", folderDisplayName("content://altro"))
+    fun bmiIsFormattedWithAnItalianDecimalComma() {
+        assertEquals("22,4", formatBmi(22.4))
+        assertEquals("30,0", formatBmi(30.0))
+    }
+
+    @Test
+    fun weightParsingAcceptsCommaAndDotAndChecksTheRange() {
+        assertEquals(WeightResult(78.5, null), parseWeight("78,5"))
+        assertEquals(WeightResult(78.5, null), parseWeight(" 78.5 "))
+        assertEquals(WeightResult(null, null), parseWeight(""))
+        assertEquals(WeightResult(30.0, null), parseWeight("30"))
+        assertEquals(WeightResult(250.0, null), parseWeight("250"))
+        listOf("29,9", "250,1", "abc", "7,8,5", "NaN").forEach {
+            val result = parseWeight(it)
+            assertNull(it, result.kg)
+            assertEquals(it, "Peso non valido (tra 30 e 250 kg).", result.error)
+        }
+    }
+
+    @Test
+    fun weightInputIsShownWithoutAUselessDecimal() {
+        assertEquals("78", formatWeightInput(78.0))
+        assertEquals("78,5", formatWeightInput(78.5))
+        assertEquals("78,6", formatWeightInput(78.55))
+        assertEquals(78.5, roundWeight(78.54), 0.0)
+    }
+
+    @Test
+    fun weightTypingKeepsDigitsAndOneSeparatorUpToSixCharacters() {
+        assertEquals("78,5", sanitizeWeightInput("78,5"))
+        assertEquals("78.5", sanitizeWeightInput("7x8.5"))
+        assertEquals("78,5", sanitizeWeightInput("78,5,"))
+        assertEquals("123456", sanitizeWeightInput("1234567890"))
+        assertEquals("", sanitizeWeightInput("kg"))
+    }
+
+    @Test
+    fun fullNameSkipsMissingParts() {
+        assertEquals("Mario Rossi", fullName(" Mario ", "Rossi "))
+        assertEquals("Mario", fullName("Mario", ""))
+        assertEquals("Rossi", fullName("  ", "Rossi"))
+        assertEquals("", fullName("", ""))
     }
 
     @Test

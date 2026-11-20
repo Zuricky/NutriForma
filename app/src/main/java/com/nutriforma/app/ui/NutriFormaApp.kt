@@ -18,11 +18,11 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.nutriforma.app.ui.navigation.BottomBarItems
-import com.nutriforma.app.ui.navigation.Esclusioni
 import com.nutriforma.app.ui.navigation.NutriFormaNavHost
 import com.nutriforma.app.ui.navigation.Profilo
+import com.nutriforma.app.ui.navigation.ProfiloSubRoutes
 
-/** App shell: 4-tab Italian bottom navigation (Dieta, Spesa, Progressi, Profilo). */
+/** App shell: 4-tab Italian bottom navigation (Dieta, Spesa, Progressi, Profilo); Impostazioni si apre dal Profilo. */
 @Composable
 fun NutriFormaApp() {
     val navController = rememberNavController()
@@ -36,14 +36,20 @@ fun NutriFormaApp() {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
                 BottomBarItems.forEach { item ->
                     val label = stringResource(item.labelRes)
+                    val selected = currentDestination?.hasRoute(item.route::class) == true ||
+                        (item.route is Profilo && ProfiloSubRoutes.any { currentDestination?.hasRoute(it) == true })
                     NavigationBarItem(
-                        selected = currentDestination?.hasRoute(item.route::class) == true ||
-                            (item.route is Profilo && currentDestination?.hasRoute(Esclusioni::class) == true),
+                        selected = selected,
                         onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                            if (selected) {
+                                // Toccare di nuovo la scheda aperta riporta alla sua schermata principale (es. da Impostazioni al Profilo).
+                                navController.popBackStack(item.route, inclusive = false)
+                            } else {
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         },
                         icon = { Icon(item.icon, contentDescription = null) },

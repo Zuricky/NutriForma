@@ -39,6 +39,10 @@ class BackupManager(
 
     override val autoBackupError: StateFlow<String?> = _autoBackupError
 
+    private val _restoreCount = MutableStateFlow(0)
+
+    override val restoreCount: StateFlow<Int> = _restoreCount
+
     @OptIn(FlowPreview::class)
     private fun startAutoBackupLoop() {
         scope.launch { trigger.receiveAsFlow().debounce(AUTO_DEBOUNCE_MS).collect { runAutoBackup() } }
@@ -92,6 +96,7 @@ class BackupManager(
         } catch (e: Exception) {
             throw BackupException("Ripristino non riuscito. Riprova.", e)
         }
+        _restoreCount.value += 1
         // I dati ripristinati diventano la nuova copia automatica.
         scheduleAutoBackup()
         result

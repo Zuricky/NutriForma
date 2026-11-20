@@ -1,7 +1,5 @@
 package com.nutriforma.app.ui.profilo
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,14 +17,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,9 +30,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,10 +40,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,22 +55,29 @@ import com.nutriforma.app.R
 import com.nutriforma.app.domain.model.Goal
 import com.nutriforma.app.domain.model.Sesso
 import com.nutriforma.app.domain.model.SportLevel
-import com.nutriforma.app.ui.promemoria.RemindersSection
+import com.nutriforma.app.domain.nutrition.BmiCategory
+import com.nutriforma.app.domain.nutrition.BmiResult
+import com.nutriforma.app.ui.SectionCard
+import com.nutriforma.app.ui.theme.ComplianceWarningContainer
+import com.nutriforma.app.ui.theme.ComplianceWarningText
+import com.nutriforma.app.ui.theme.EggplantPurpleContainer
+import com.nutriforma.app.ui.theme.HerbGreenContainer
+import com.nutriforma.app.ui.theme.OnEggplantPurpleContainer
+import com.nutriforma.app.ui.theme.OnHerbGreenContainer
+import com.nutriforma.app.ui.theme.OnTomatoRedContainer
+import com.nutriforma.app.ui.theme.TomatoRedContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfiloScreen(viewModel: ProfiloViewModel, onOpenEsclusioni: () -> Unit, modifier: Modifier = Modifier) {
+fun ProfiloScreen(
+    viewModel: ProfiloViewModel,
+    onOpenEsclusioni: () -> Unit,
+    onOpenImpostazioni: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) { viewModel.events.collect { snackbarHost.showSnackbar(it) } }
-
-    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) {
-        viewModel.exportBackup(it?.toString())
-    }
-    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { viewModel.importPicked(it?.toString()) }
-    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {
-        viewModel.chooseAutoBackupFolder(it?.toString())
-    }
 
     Scaffold(
         modifier = modifier,
@@ -82,66 +88,38 @@ fun ProfiloScreen(viewModel: ProfiloViewModel, onOpenEsclusioni: () -> Unit, mod
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 title = { Text(stringResource(R.string.profilo_title), fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onOpenImpostazioni, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.impostazioni_open))
+                    }
+                },
             )
         },
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxSize()) {
-            if (state.busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            LazyColumn(
-                Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                item { GoalCard(state, viewModel::setGoal) }
-                item { SportCard(state, viewModel::setSportLevel) }
-                item { PersonalCard(state, viewModel::onSessoChange, viewModel::onBirthYearChange, viewModel::onHeightChange, viewModel::savePersonal) }
-                item { FoodsCard(state, onOpenEsclusioni) }
-                item { CheatCard(state, viewModel::setCheatMeals) }
-                item {
-                    SectionCard(stringResource(R.string.profilo_reminders)) {
-                        RemindersSection(state.reminders, viewModel::setReminder, viewModel::notifyPermissionDenied)
-                    }
-                }
-                item {
-                    BackupCard(
-                        state,
-                        onExport = { exportLauncher.launch(viewModel.suggestedBackupName()) },
-                        onImport = { importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain")) },
-                        onChooseFolder = { folderLauncher.launch(null) },
-                        onAutoEnabled = viewModel::setAutoBackupEnabled,
-                    )
-                }
-                item {
-                    SectionCard(stringResource(R.string.profilo_info)) {
-                        Text(stringResource(R.string.profilo_disclaimer), style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item(key = "personal") {
+                PersonalCard(
+                    state = state,
+                    onEdit = viewModel::startEdit,
+                    onCancel = viewModel::cancelEdit,
+                    onSave = viewModel::savePersonal,
+                    onFirstName = viewModel::onFirstNameChange,
+                    onLastName = viewModel::onLastNameChange,
+                    onSesso = viewModel::onSessoChange,
+                    onBirthYear = viewModel::onBirthYearChange,
+                    onHeight = viewModel::onHeightChange,
+                    onWeight = viewModel::onWeightChange,
+                )
             }
-        }
-    }
-
-    state.pendingRestore?.let { summary ->
-        AlertDialog(
-            onDismissRequest = viewModel::cancelRestore,
-            title = { Text(stringResource(R.string.backup_restore_title)) },
-            text = { Text(stringResource(R.string.backup_restore_body, summary.exportedAtText, summary.plans, summary.measurements)) },
-            confirmButton = { TextButton(onClick = viewModel::confirmRestore) { Text(stringResource(R.string.backup_restore_confirm)) } },
-            dismissButton = { TextButton(onClick = viewModel::cancelRestore) { Text(stringResource(R.string.action_cancel)) } },
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        )
-    }
-}
-
-@Composable
-private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Column(Modifier.padding(top = 8.dp)) { content() }
+            item(key = "bmi") { BmiCard(state.bmi) }
+            item(key = "goal") { GoalCard(state, viewModel::setGoal) }
+            item(key = "sport") { SportCard(state, viewModel::setSportLevel) }
+            item(key = "foods") { FoodsCard(state, onOpenEsclusioni) }
+            item(key = "cheat") { CheatCard(state, viewModel::setCheatMeals) }
         }
     }
 }
@@ -199,47 +177,137 @@ private fun SportCard(state: ProfiloUiState, onLevel: (SportLevel) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+// ---- Dati personali: sola lettura oppure modifica ----------------------------------------------------------------
+
 @Composable
 private fun PersonalCard(
     state: ProfiloUiState,
+    onEdit: () -> Unit,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+    onFirstName: (String) -> Unit,
+    onLastName: (String) -> Unit,
     onSesso: (Sesso) -> Unit,
     onBirthYear: (String) -> Unit,
     onHeight: (String) -> Unit,
-    onSave: () -> Unit,
+    onWeight: (String) -> Unit,
 ) {
     SectionCard(stringResource(R.string.profilo_personal)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Sesso.entries.forEach { s ->
-                FilterChip(selected = state.sesso == s, onClick = { onSesso(s) }, label = { Text(s.labelIt) })
-            }
-        }
-        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            NumberField(state.birthYearText, stringResource(R.string.profilo_birth_year), state.birthYearError, onBirthYear, Modifier.weight(1f))
-            NumberField(state.heightText, stringResource(R.string.profilo_height), state.heightError, onHeight, Modifier.weight(1f))
-        }
-        Text(
-            stringResource(R.string.profilo_personal_hint),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (state.personalDirty) stringResource(R.string.profilo_personal_unsaved) else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.weight(1f),
-            )
-            Button(onClick = onSave, enabled = state.personalDirty, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text(stringResource(R.string.profilo_personal_save))
-            }
+        if (state.isEditing) {
+            PersonalEditContent(state, onCancel, onSave, onFirstName, onLastName, onSesso, onBirthYear, onHeight, onWeight)
+        } else {
+            PersonalReadContent(state, onEdit)
         }
     }
 }
 
 @Composable
-private fun NumberField(text: String, label: String, error: String?, onChange: (String) -> Unit, modifier: Modifier) {
+private fun PersonalReadContent(state: ProfiloUiState, onEdit: () -> Unit) {
+    val notSet = stringResource(R.string.profilo_not_set)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ReadRow(stringResource(R.string.profilo_first_name), state.firstName.ifBlank { notSet })
+        ReadRow(stringResource(R.string.profilo_last_name), state.lastName.ifBlank { notSet })
+        ReadRow(stringResource(R.string.profilo_sex), state.sesso?.labelIt ?: notSet)
+        ReadRow(
+            stringResource(R.string.profilo_birth_year),
+            state.birthYear?.let { year ->
+                state.ageYears?.let { age -> stringResource(R.string.profilo_age_value, year, age) } ?: year.toString()
+            } ?: notSet,
+        )
+        ReadRow(stringResource(R.string.profilo_height), state.heightCm?.toString() ?: notSet)
+        ReadRow(stringResource(R.string.profilo_weight), state.weightKg?.let(::formatWeightInput) ?: notSet)
+    }
+    val editDescription = stringResource(R.string.profilo_edit_description)
+    OutlinedButton(
+        onClick = onEdit,
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 48.dp).semantics { contentDescription = editDescription },
+    ) {
+        Text(stringResource(R.string.profilo_edit))
+    }
+}
+
+@Composable
+private fun ReadRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 32.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PersonalEditContent(
+    state: ProfiloUiState,
+    onCancel: () -> Unit,
+    onSave: () -> Unit,
+    onFirstName: (String) -> Unit,
+    onLastName: (String) -> Unit,
+    onSesso: (Sesso) -> Unit,
+    onBirthYear: (String) -> Unit,
+    onHeight: (String) -> Unit,
+    onWeight: (String) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NameField(state.firstNameText, stringResource(R.string.profilo_first_name), onFirstName, Modifier.weight(1f))
+            NameField(state.lastNameText, stringResource(R.string.profilo_last_name), onLastName, Modifier.weight(1f))
+        }
+        Text(stringResource(R.string.profilo_sex), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Sesso.entries.forEach { s ->
+                FilterChip(selected = state.sesso == s, onClick = { onSesso(s) }, label = { Text(s.labelIt) })
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NumberField(state.birthYearText, stringResource(R.string.profilo_birth_year), state.birthYearError, KeyboardType.Number, onBirthYear, Modifier.weight(1f))
+            NumberField(state.heightText, stringResource(R.string.profilo_height), state.heightError, KeyboardType.Number, onHeight, Modifier.weight(1f))
+        }
+        NumberField(state.weightText, stringResource(R.string.profilo_weight), state.weightError, KeyboardType.Decimal, onWeight, Modifier.fillMaxWidth())
+    }
+    Text(
+        stringResource(R.string.profilo_personal_hint),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 8.dp),
+    )
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            if (state.personalDirty) stringResource(R.string.profilo_personal_unsaved) else "",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.weight(1f),
+        )
+        // Senza dati salvati non c'è nulla a cui tornare: resta solo "Salva".
+        if (state.hasSavedPersonalData) {
+            OutlinedButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.action_cancel)) }
+        }
+        Button(onClick = onSave, enabled = state.personalDirty, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.action_save))
+        }
+    }
+}
+
+@Composable
+private fun NameField(text: String, label: String, onChange: (String) -> Unit, modifier: Modifier) {
+    OutlinedTextField(
+        value = text,
+        onValueChange = onChange,
+        label = { Text(label) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun NumberField(
+    text: String,
+    label: String,
+    error: String?,
+    keyboardType: KeyboardType,
+    onChange: (String) -> Unit,
+    modifier: Modifier,
+) {
     OutlinedTextField(
         value = text,
         onValueChange = onChange,
@@ -247,10 +315,60 @@ private fun NumberField(text: String, label: String, error: String?, onChange: (
         singleLine = true,
         isError = error != null,
         supportingText = error?.let { { Text(it) } },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
         modifier = modifier,
     )
 }
+
+// ---- IMC ---------------------------------------------------------------------------------------------------------
+
+@Composable
+private fun BmiCard(bmi: BmiResult?) {
+    SectionCard(stringResource(R.string.profilo_bmi_title)) {
+        if (bmi == null) {
+            Text(
+                stringResource(R.string.profilo_bmi_missing),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            val (container, content) = bmiColors(bmi.category)
+            val value = formatBmi(bmi.value)
+            val description = stringResource(R.string.profilo_bmi_description, value, bmi.category.labelIt)
+            Row(
+                Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = description },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = content)
+                Surface(shape = RoundedCornerShape(50), color = container, contentColor = content) {
+                    Text(
+                        bmi.category.labelIt,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    )
+                }
+            }
+            Text(
+                stringResource(R.string.profilo_bmi_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+/** Palette mediterranea: verde = normopeso, viola = sottopeso, ambra = sovrappeso, pomodoro = obesità. */
+private fun bmiColors(category: BmiCategory): Pair<Color, Color> = when (category) {
+    BmiCategory.SOTTOPESO -> EggplantPurpleContainer to OnEggplantPurpleContainer
+    BmiCategory.NORMOPESO -> HerbGreenContainer to OnHerbGreenContainer
+    BmiCategory.SOVRAPPESO -> ComplianceWarningContainer to ComplianceWarningText
+    BmiCategory.OBESITA -> TomatoRedContainer to OnTomatoRedContainer
+}
+
+// ---- Alimenti / pasti liberi -------------------------------------------------------------------------------------
 
 @Composable
 private fun FoodsCard(state: ProfiloUiState, onOpen: () -> Unit) {
@@ -277,11 +395,11 @@ private fun FoodsCard(state: ProfiloUiState, onOpen: () -> Unit) {
 private fun CheatCard(state: ProfiloUiState, onChange: (Int) -> Unit) {
     SectionCard(stringResource(R.string.profilo_cheat)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(1, 2).forEach { n ->
+            listOf(1 to R.string.profilo_cheat_one, 2 to R.string.profilo_cheat_two).forEach { (n, label) ->
                 FilterChip(
                     selected = state.cheatMealsPerWeek == n,
                     onClick = { onChange(n) },
-                    label = { Text(if (n == 1) "1 a settimana" else "2 a settimana") },
+                    label = { Text(stringResource(label)) },
                 )
             }
         }
@@ -290,65 +408,6 @@ private fun CheatCard(state: ProfiloUiState, onChange: (Int) -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 8.dp),
-        )
-    }
-}
-
-@Composable
-private fun BackupCard(
-    state: ProfiloUiState,
-    onExport: () -> Unit,
-    onImport: () -> Unit,
-    onChooseFolder: () -> Unit,
-    onAutoEnabled: (Boolean) -> Unit,
-) {
-    SectionCard(stringResource(R.string.backup_title)) {
-        Text(
-            stringResource(R.string.backup_intro),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OutlinedButton(onClick = onExport, enabled = !state.busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.backup_export))
-        }
-        OutlinedButton(onClick = onImport, enabled = !state.busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.backup_restore))
-        }
-        OutlinedButton(onClick = onChooseFolder, enabled = !state.busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.backup_choose_folder))
-        }
-        Text(
-            state.backupFolderName?.let { stringResource(R.string.backup_folder, it) } ?: stringResource(R.string.backup_no_folder),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f).padding(end = 12.dp)) {
-                Text(stringResource(R.string.backup_auto), style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    stringResource(R.string.backup_auto_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Switch(checked = state.autoBackupEnabled, onCheckedChange = onAutoEnabled, enabled = state.backupFolderName != null && !state.busy)
-        }
-        state.autoBackupError?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-        }
-        state.backupStatus?.let {
-            Text(
-                it.message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (it.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-        Text(
-            state.lastBackupText?.let { stringResource(R.string.backup_last, it) } ?: stringResource(R.string.backup_never),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }

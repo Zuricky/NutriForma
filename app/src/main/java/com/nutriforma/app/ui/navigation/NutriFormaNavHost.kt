@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.nutriforma.app.ui.AppViewModelProvider
 import com.nutriforma.app.ui.dieta.DietaScreen
+import com.nutriforma.app.ui.impostazioni.ImpostazioniScreen
 import com.nutriforma.app.ui.profilo.EsclusioniScreen
 import com.nutriforma.app.ui.profilo.ProfiloScreen
 import com.nutriforma.app.ui.progressi.ProgressiScreen
@@ -29,6 +30,13 @@ fun NutriFormaNavHost(navController: NavHostController, modifier: Modifier = Mod
             ProfiloScreen(
                 viewModel = viewModel(factory = AppViewModelProvider.Factory),
                 onOpenEsclusioni = { navController.navigate(Esclusioni) },
+                onOpenImpostazioni = { navController.navigate(Impostazioni) { launchSingleTop = true } },
+            )
+        }
+        composable<Impostazioni> {
+            ImpostazioniScreen(
+                viewModel = viewModel(factory = AppViewModelProvider.Factory),
+                onBack = { navController.popBackStack() },
             )
         }
         composable<Esclusioni> {

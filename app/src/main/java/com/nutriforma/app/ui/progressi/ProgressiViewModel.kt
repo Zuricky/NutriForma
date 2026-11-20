@@ -6,6 +6,8 @@ import com.nutriforma.app.data.preferences.UserProfileRepository
 import com.nutriforma.app.data.repository.TrackingRepository
 import com.nutriforma.app.domain.model.BodyMeasurement
 import com.nutriforma.app.domain.tips.DailyTips
+import com.nutriforma.app.domain.tips.MotivationalMessage
+import com.nutriforma.app.domain.tips.MotivationalMessages
 import com.nutriforma.app.domain.tracking.MeasurementInputResult
 import com.nutriforma.app.domain.tracking.MeasurementMetric
 import com.nutriforma.app.domain.tracking.SeriesPoint
@@ -31,6 +33,10 @@ data class ProgressiUiState(
     val waterMl: Int = 0,
     val waterGoalMl: Int = 1700,
     val tip: String = "",
+    /** Complimento per l'obiettivo acqua di oggi (`null` finché non è raggiunto). */
+    val waterCompliment: MotivationalMessage? = null,
+    /** Complimento per i progressi verso l'obiettivo o per la costanza delle misure (`null` se non c'è nulla da dire). */
+    val progressCompliment: MotivationalMessage? = null,
     val series: Map<MeasurementMetric, List<SeriesPoint>> = emptyMap(),
     /** Più recenti per prime. */
     val recent: List<BodyMeasurement> = emptyList(),
@@ -72,6 +78,8 @@ class ProgressiViewModel(
                 waterMl = water.coerceAtLeast(0),
                 waterGoalMl = profile.waterGoalMl,
                 tip = DailyTips.tipFor(today),
+                waterCompliment = MotivationalMessages.forWater(water, profile.waterGoalMl, today),
+                progressCompliment = MotivationalMessages.forProgress(profile.goal, measurements, today),
                 series = MeasurementMetric.entries.associateWith { seriesOf(measurements, it) },
                 recent = measurements.sortedByDescending { it.date }.take(RECENT_LIMIT),
                 today = today,

@@ -7,6 +7,7 @@ import com.nutriforma.app.domain.model.ComplianceStatus
 import com.nutriforma.app.domain.model.Goal
 import com.nutriforma.app.domain.model.MealRole
 import com.nutriforma.app.domain.model.MealSlot
+import com.nutriforma.app.domain.model.MealType
 import com.nutriforma.app.domain.model.PlannedComponent
 import com.nutriforma.app.domain.model.PortionUnit
 import com.nutriforma.app.domain.model.RuleId
@@ -15,6 +16,8 @@ import com.nutriforma.app.domain.model.TurnoLungoDay
 import com.nutriforma.app.domain.model.TurnoLungoOption
 import com.nutriforma.app.domain.model.UserProfile
 import com.nutriforma.app.domain.model.WeekPlan
+import com.nutriforma.app.domain.tips.MotivationTrigger
+import com.nutriforma.app.domain.tips.MotivationalMessages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -150,6 +153,61 @@ class DietaUiStateTest {
         assertEquals(listOf("Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"), c.days.map { it.shortName })
         assertEquals(listOf(false, true, false, false, false, false, false), c.days.map { it.isToday })
         assertEquals(16, c.days.first().dayOfMonth)
+    }
+
+    // ---- Complimenti ------------------------------------------------------------------------------------------
+
+    private fun completable(p: WeekPlan, day: Int? = null) =
+        p.meals.filter { it.type != MealType.SPUNTINO_SALTATO && (day == null || it.dayIndex == day) }
+
+    @Test
+    fun noCompletedMealsMeansNoCompliment() {
+        assertNull(content().motivation)
+    }
+
+    @Test
+    fun completingEveryMealOfTodayShowsTheDayCompliment() {
+        val p = plan()
+        val todayIds = completable(p, day = 1).map { it.id }.toSet()
+        val almost = content(day = 1, plan = p, completed = todayIds - todayIds.first())
+        assertNull("manca un pasto", almost.motivation)
+
+        val c = content(day = 1, plan = p, completed = todayIds)
+        assertEquals(MotivationTrigger.DAY_COMPLETED, c.motivation!!.trigger)
+        assertTrue(c.motivation!!.text in MotivationalMessages.DAY_PHRASES)
+        assertEquals("sempre la stessa frase per la stessa giornata", c, content(day = 1, plan = p, completed = todayIds))
+    }
+
+    @Test
+    fun theDayComplimentIsAboutTodayWhicheverDayIsOpen() {
+        val p = plan()
+        val todayIds = completable(p, day = 1).map { it.id }.toSet()
+        assertEquals(MotivationTrigger.DAY_COMPLETED, content(day = 4, plan = p, completed = todayIds).motivation!!.trigger)
+        val otherDayIds = completable(p, day = 3).map { it.id }.toSet()
+        assertNull("completare un altro giorno non vale per oggi", content(day = 3, plan = p, completed = otherDayIds).motivation)
+    }
+
+    @Test
+    fun aStrongWeekWithoutViolationsShowsTheWeekCompliment() {
+        val p = plan()
+        val all = completable(p).map { it.id }
+        assertFalse("il piano generato rispetta le regole", content(plan = p).hasViolations)
+
+        val strong = all.take(all.size * MotivationalMessages.STRONG_WEEK_PERCENT / 100 + 1).toSet()
+        val c = content(plan = p, completed = strong)
+        assertEquals(MotivationTrigger.WEEK_STRONG, c.motivation!!.trigger)
+
+        // Metà dei pasti, sparsi nella settimana: né "solida" né con una giornata intera completata.
+        val weak = all.filterIndexed { i, _ -> i % 2 == 0 }.toSet()
+        assertNull(content(plan = p, completed = weak).motivation)
+    }
+
+    @Test
+    fun noComplimentsForAWeekThatIsNotTheCurrentOne() {
+        val p = plan()
+        val all = completable(p).map { it.id }.toSet()
+        val c = buildDietaContent(p, TestFoods.all, profile, all, 1, today = MONDAY.plusDays(10))
+        assertNull(c.motivation)
     }
 
     @Test
